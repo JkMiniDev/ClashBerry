@@ -98,11 +98,27 @@ async def get_coc_clan_war(clan_tag):
                                     "type": "cwl"
                                 }
                                 all_war_objs.append(war_for_embed)
-        # Prefer inWar > preparation > warEnded
-        for state in ("inWar", "preparation", "warEnded"):
+        
+        # Prefer inWar > preparation first
+        for state in ("inWar", "preparation"):
             for war in all_war_objs:
                 if war["state"] == state:
                     return war, "cwl"
+        
+        # Check for ended CWL wars within 24 hours
+        now = datetime.datetime.utcnow()
+        ended_wars = [war for war in all_war_objs if war["state"] == "warEnded"]
+        
+        for war in ended_wars:
+            end_time_iso = war.get("endTime")
+            if end_time_iso:
+                try:
+                    end_time_dt = datetime.datetime.strptime(end_time_iso, "%Y%m%dT%H%M%S.000Z")
+                    hours_since_end = (now - end_time_dt).total_seconds() / 3600
+                    if hours_since_end <= 24:  # Show only if ended within 24 hours
+                        return war, "cwl"
+                except Exception:
+                    continue
 
     # If no current war and no cwl, return not in war
     return None, "notInWar"
@@ -138,7 +154,7 @@ def make_attacks_embed(war_data, war_type):
     attacks_expected = 1 if war_type == "cwl" else 2
     total_attacks = len(members) * attacks_expected
     done_attacks = sum(len(m.get("attacks", [])) for m in members)
-    
+
     # Main attacks header
     header = f"**Attacks {done_attacks}/{total_attacks}**"
     lines = []
@@ -148,10 +164,10 @@ def make_attacks_embed(war_data, war_type):
             stars = _star_string(atk.get("stars", 0))
             percent = atk.get("destructionPercentage", 0)
             lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {stars} {percent}%")
-    
+
     if not lines:
         lines.append("No attacks recorded yet.")
-    
+
     # Add remaining attacks section if war is in progress
     if war_data.get("state") == "inWar":
         remaining_lines = []
@@ -160,7 +176,7 @@ def make_attacks_embed(war_data, war_type):
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
                 remaining_lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {attacks_done}/{attacks_expected}")
-        
+
         if remaining_lines:
             lines.append("")  # Empty line for separation
             lines.append("**Remaining Attacks**")
@@ -169,7 +185,7 @@ def make_attacks_embed(war_data, war_type):
             lines.append("")
             lines.append("**Remaining Attacks**")
             lines.append("All attacks have been used!")
-    
+
     # Add missed attacks section if CWL war ended
     if war_data.get("state") == "warEnded" and war_type == "cwl":
         missed_lines = []
@@ -178,7 +194,7 @@ def make_attacks_embed(war_data, war_type):
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
                 missed_lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {attacks_done}/{attacks_expected}")
-        
+
         if missed_lines:
             lines.append("")  # Empty line for separation
             lines.append("**Missed Attacks**")
@@ -187,7 +203,7 @@ def make_attacks_embed(war_data, war_type):
             lines.append("")
             lines.append("**Missed Attacks**")
             lines.append("No missed attacks!")
-    
+
     embed = discord.Embed(
         description='\n'.join([header] + lines[:100]),  # Increased limit to accommodate additional sections
         color=EMBED_COLOR
@@ -343,18 +359,18 @@ async def make_private_war_log_embed(clan_tag):
         description="Private War Log",
         color=EMBED_COLOR
     )
-    
+
     # Fetch clan info to get name and badge
     headers = {"Authorization": f"Bearer {COC_API_TOKEN}"}
     tag = clan_tag.replace("#", "%23")
     url = f"https://cocproxy.royaleapi.dev/v1/clans/{tag}"
     clan_data = await fetch_json(url, headers)
-    
+
     if clan_data and "name" in clan_data:
         embed.set_author(name=f"{clan_data['name']} ({clan_data['tag']})", icon_url=clan_data.get("badgeUrls", {}).get("large", ""))
     else:
         embed.set_author(name=f"Clan ({clan_tag})")
-    
+
     return embed
 
 async def make_not_in_war_embed(clan_tag):
@@ -362,19 +378,24 @@ async def make_not_in_war_embed(clan_tag):
         description="Not in war",
         color=EMBED_COLOR
     )
-    
+
     # Fetch clan info to get name and badge
     headers = {"Authorization": f"Bearer {COC_API_TOKEN}"}
     tag = clan_tag.replace("#", "%23")
     url = f"https://cocproxy.royaleapi.dev/v1/clans/{tag}"
     clan_data = await fetch_json(url, headers)
-    
+
     if clan_data and "name" in clan_data:
         embed.set_author(name=f"{clan_data['name']} ({clan_data['tag']})", icon_url=clan_data.get("badgeUrls", {}).get("large", ""))
     else:
         embed.set_author(name=f"Clan ({clan_tag})")
-    
+
     return embed
+
+class WarView(discord.ui.View):
+    def __init__(self, war_data, war_type, current="overview"):
+        super().__init__(timeout=300)
+        self.add_item(WarDropdown(war_data, war_type, current))
 
 class WarDropdown(discord.ui.Select):
     def __init__(self, war_data, war_type, current):
@@ -438,49 +459,3 @@ class WarDropdown(discord.ui.Select):
             embed = discord.Embed(title="Invalid selection.")
         view = WarView(self.war_data, self.war_type, current=value)
         await interaction.response.edit_message(embed=embed, view=view)
-
-class WarView(discord.ui.View):
-    def __init__(self, war_data, war_type, current="overview", timeout=300):
-        super().__init__(timeout=timeout)
-        self.add_item(WarDropdown(war_data, war_type, current))
-
-def setup(bot):
-    async def clan_tag_autocomplete(interaction: discord.Interaction, current: str):
-        await init_supabase_client()
-        data = await get_linked_clans(str(interaction.guild.id))
-        clans = data.get("clans", [])
-        return [
-            discord.app_commands.Choice(
-                name=f"{clan['name']} ({clan['tag']})",
-                value=clan['tag']
-            )
-            for clan in clans
-            if current.lower() in clan['tag'].lower() or current.lower() in clan['name'].lower()
-        ][:25]
-
-    @bot.tree.command(name="war", description="Get clan war/cwl information.")
-    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def war_command(interaction: discord.Interaction, tag: str):
-        await interaction.response.defer()
-        await init_supabase_client()
-        war_data, war_type = await get_coc_clan_war(tag)
-        
-        if war_type == "accessDenied":
-            embed = await make_private_war_log_embed(tag)
-            await interaction.followup.send(embed=embed)
-            return
-        
-        if war_type == "notInWar":
-            embed = await make_not_in_war_embed(tag)
-            await interaction.followup.send(embed=embed)
-            return
-        
-        if not war_data:
-            await interaction.followup.send("No clan found for the provided tag.")
-            return
-        
-        current_view = "overview"
-        embed = make_overview_embed(war_data, war_type)
-        view = WarView(war_data, war_type, current=current_view)
-        await interaction.followup.send(embed=embed, view=view)
