@@ -115,13 +115,13 @@ async def get_linked_clans(guild_id):
 
 def _star_string(stars: int):
     if stars == 3:
-        return "â˜…â˜…â˜…"
+        return "★★★"
     elif stars == 2:
-        return "â˜…â˜…â˜†"
+        return "★★☆"
     elif stars == 1:
-        return "â˜…â˜†â˜†"
+        return "★☆☆"
     else:
-        return "â˜†â˜†â˜†"
+        return "☆☆☆"
 
 EMBED_COLOR = discord.Color(int("0xcccccc", 16))
 
