@@ -2,4 +2,6 @@ discord.py
 python-dotenv
 aiohttp
 supabase
+pymongo
+motor
 flask
