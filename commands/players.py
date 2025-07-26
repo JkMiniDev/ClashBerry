@@ -2,7 +2,7 @@ import os
 import discord
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
-import json  # Added for max.json and emoji loading
+import json  # Added for max_lvl.json and emoji loading
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
@@ -13,17 +13,17 @@ MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
 db = mongodb_client[MONGODB_DATABASE]
 
-# Load max.json using absolute path
+# Load max_lvl.json using absolute path
 try:
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    max_json_path = os.path.join(script_dir, 'max.json')
+    max_json_path = os.path.join(script_dir, 'config', 'max_lvl.json')
     with open(max_json_path, 'r') as f:
         max_levels = json.load(f)
 except FileNotFoundError:
-    print(f"Error: 'max.json' not found at {max_json_path}")
+    print(f"Error: 'max_lvl.json' not found at {max_json_path}")
     max_levels = {}
 except Exception as e:
-    print(f"Error loading max.json: {str(e)}")
+    print(f"Error loading max_lvl.json: {str(e)}")
     max_levels = {}
 
 class PlayerEmbeds:
