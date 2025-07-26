@@ -1,36 +1,22 @@
 import os
 import discord
 import aiohttp
-from supabase import create_client, Client
+from motor.motor_asyncio import AsyncIOMotorClient
+import json
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize MongoDB client
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
-# Emoji table for Town Hall levels 1 to 17 (Unicode emojis)
-TH_EMOJI_MAP = {
-    1: "<:TH1:1389337801044131933>",   # Basic house emoji for TH1
-    2: "<:TH2:1389338126907998238>",   # Slightly upgraded house for TH2
-    3: "<:TH3:1389338161372729556>",  # Small village house for TH3
-    4: "<:TH4:1389338196155830373>",   # Post office style for TH4
-    5: "<:TH5:1389338267044020375>",   # Hospital-like for TH5
-    6: "<:TH6:1389338294055079956>",   # Castle for TH6
-    7: "<:TH7:1389338322639523910>",   # Mosque-like for TH7
-    8: "<:TH8:1389338353907929278>",   # Japanese castle for TH8
-    9: "<:TH9:1389338445863714826>",   # Temple for TH9
-    10: "<:TH10:1389337837756743770>",  # Classical building for TH10
-    11: "<:TH11:1389337873526030517>",  # Tower for TH11
-    12: "<:TH12:1389337901132677202>",  # Stadium-like for TH12
-    13: "<:TH13:1389337944837591152>",  # Statue for TH13
-    14: "<:TH14:1389337974185136189>",  # Moai for TH14
-    15: "<:TH15:1389338002114744362>",  # Ancient urn for TH15
-    16: "<:TH16:1389338032766980247>",  # Tool for TH16
-    17: "<:TH17:1389338065650319430>"   # Hammer for TH17
-}
+# Load TH emojis from JSON
+script_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
+    TH_EMOJI_MAP = json.load(f)
 
 async def get_coc_player(player_tag):
     url = f"https://cocproxy.royaleapi.dev/v1/players/{player_tag.replace('#', '%23')}"
@@ -53,12 +39,13 @@ async def get_coc_player(player_tag):
 
 async def get_linked_players(discord_id):
     try:
-        response = supabase.table("linked_players").select("*").eq("discord_id", discord_id).execute()
-        if response.data:
-            return response.data[0]
+        linked_players_collection = db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": discord_id})
+        if result:
+            return result
         return {"discord_id": discord_id, "unverified": [], "verified": []}
     except Exception as e:
-        print(f"Supabase get_linked_players error: {e}")  # Debug log
+        print(f"MongoDB get_linked_players error: {e}")  # Debug log
         return {"discord_id": discord_id, "unverified": [], "verified": []}
 
 def setup(bot):
@@ -73,7 +60,7 @@ def setup(bot):
         target_user = user if user else interaction.user
         target_user_id = str(target_user.id)
 
-        # Get user data from Supabase
+        # Get user data from MongoDB
         user_data = await get_linked_players(target_user_id)
 
         # Initialize embed
@@ -106,7 +93,7 @@ def setup(bot):
                 if player_data:
                     player_name = player_data.get("name", "Unknown")
                     th_level = player_data.get("townHallLevel", 1)
-                    th_emoji = TH_EMOJI_MAP.get(th_level, "❓")  # Default to question mark if not found
+                    th_emoji = TH_EMOJI_MAP.get(str(th_level), "❓")  # Default to question mark if not found
                     is_verified = player_tag in verified_accounts
                     verification_mark = " <:Verified:1390721846420439051>" if is_verified else ""
                     account_data.append({

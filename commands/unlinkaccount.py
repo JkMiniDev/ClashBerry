@@ -1,15 +1,16 @@
 import discord
 import os
 import aiohttp
-from supabase import create_client, Client
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize MongoDB client
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
 async def get_coc_player(player_tag):
     url = f"https://cocproxy.royaleapi.dev/v1/players/{player_tag.replace('#', '%23')}"
@@ -23,19 +24,21 @@ async def get_coc_player(player_tag):
 
 async def get_linked_players(discord_id):
     try:
-        response = supabase.table("linked_players").select("*").eq("discord_id", discord_id).execute()
-        if response.data:
-            return response.data[0]
+        linked_players_collection = db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": discord_id})
+        if result:
+            return result
         return {"discord_id": discord_id, "verified": [], "unverified": []}
     except Exception as e:
-        print(f"Supabase get_linked_players error: {e}")
+        print(f"MongoDB get_linked_players error: {e}")
         return {"discord_id": discord_id, "verified": [], "unverified": []}
 
 async def save_linked_players(data):
     try:
-        supabase.table("linked_players").upsert(data).execute()
+        linked_players_collection = db.linked_players
+        await linked_players_collection.replace_one({"discord_id": data["discord_id"]}, data, upsert=True)
     except Exception as e:
-        print(f"Supabase save_linked_players error: {e}")
+        print(f"MongoDB save_linked_players error: {e}")
 
 def setup(bot):
     async def player_tag_autocomplete(interaction: discord.Interaction, current: str):

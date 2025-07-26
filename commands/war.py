@@ -1,43 +1,22 @@
 import os
 import discord
 import aiohttp
-from supabase import acreate_client, AsyncClient
+from motor.motor_asyncio import AsyncIOMotorClient
 import datetime
+import json
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: AsyncClient = None
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
-TH_EMOJIS = {
-        1: "<:TH1:1389337801044131933>",   # Basic house emoji for TH1
-    2: "<:TH2:1389338126907998238>",   # Slightly upgraded house for TH2
-    3: "<:TH3:1389338161372729556>",  # Small village house for TH3
-    4: "<:TH4:1389338196155830373>",   # Post office style for TH4
-    5: "<:TH5:1389338267044020375>",   # Hospital-like for TH5
-    6: "<:TH6:1389338294055079956>",   # Castle for TH6
-    7: "<:TH7:1389338322639523910>",   # Mosque-like for TH7
-    8: "<:TH8:1389338353907929278>",   # Japanese castle for TH8
-    9: "<:TH9:1389338445863714826>",   # Temple for TH9
-    10: "<:TH10:1389337837756743770>",  # Classical building for TH10
-    11: "<:TH11:1389337873526030517>",  # Tower for TH11
-    12: "<:TH12:1389337901132677202>",  # Stadium-like for TH12
-    13: "<:TH13:1389337944837591152>",  # Statue for TH13
-    14: "<:TH14:1389337974185136189>",  # Moai for TH14
-    15: "<:TH15:1389338002114744362>",  # Ancient urn for TH15
-    16: "<:TH16:1389338032766980247>",  # Tool for TH16
-    17: "<:TH17:1389338065650319430>"   # Hammer for TH17
-}
+# Load TH emojis from JSON
+script_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
+    TH_EMOJIS = json.load(f)
 def th_emoji(level):
-    return TH_EMOJIS.get(int(level), "")
-
-async def init_supabase_client():
-    global supabase
-    if supabase is None:
-        try:
-            supabase = await acreate_client(SUPABASE_URL, SUPABASE_KEY)
-        except Exception as e:
-            print(f"Error initializing Supabase client: {e}")
+    return TH_EMOJIS.get(str(level), "")
 
 async def fetch_json(url, headers):
     async with aiohttp.ClientSession() as session:
@@ -124,27 +103,25 @@ async def get_coc_clan_war(clan_tag):
     return None, "notInWar"
 
 async def get_linked_clans(guild_id):
-    await init_supabase_client()
-    if supabase is None:
-        return {"guild_id": guild_id, "clans": []}
     try:
-        response = await supabase.table("linked_clans").select("*").eq("guild_id", guild_id).execute()
-        if response.data:
-            return response.data[0]
+        linked_clans_collection = db.linked_clans
+        result = await linked_clans_collection.find_one({"guild_id": guild_id})
+        if result:
+            return result
         return {"guild_id": guild_id, "clans": []}
     except Exception as e:
-        print(f"Supabase get_linked_clans error: {e}")
+        print(f"MongoDB get_linked_clans error: {e}")
         return {"guild_id": guild_id, "clans": []}
 
 def _star_string(stars: int):
     if stars == 3:
-        return "★★★"
+        return "â˜…â˜…â˜…"
     elif stars == 2:
-        return "★★☆"
+        return "â˜…â˜…â˜†"
     elif stars == 1:
-        return "★☆☆"
+        return "â˜…â˜†â˜†"
     else:
-        return "☆☆☆"
+        return "â˜†â˜†â˜†"
 
 EMBED_COLOR = discord.Color(int("0xcccccc", 16))
 
@@ -346,7 +323,7 @@ def make_overview_embed(war_data, war_type):
             lvl = int(m.get("townhallLevel", 0))
             th_counts[lvl] = th_counts.get(lvl, 0) + 1
         sorted_ths = sorted(th_counts.items(), reverse=True)
-        return ' '.join(f"{TH_EMOJIS.get(th, '')} `{count}`" for th, count in sorted_ths)
+        return ' '.join(f"{TH_EMOJIS.get(str(th), '')} `{count}`" for th, count in sorted_ths)
     desc.append(f"{clan.get('name', '?')}\n{th_breakdown(clan.get('members', []))}")
     desc.append(f"{opponent.get('name', '?')}\n{th_breakdown(opponent.get('members', []))}")
     embed.description = '\n\n'.join(desc)
@@ -391,11 +368,6 @@ async def make_not_in_war_embed(clan_tag):
         embed.set_author(name=f"Clan ({clan_tag})")
 
     return embed
-
-class WarView(discord.ui.View):
-    def __init__(self, war_data, war_type, current="overview"):
-        super().__init__(timeout=300)
-        self.add_item(WarDropdown(war_data, war_type, current))
 
 class WarDropdown(discord.ui.Select):
     def __init__(self, war_data, war_type, current):
@@ -459,3 +431,49 @@ class WarDropdown(discord.ui.Select):
             embed = discord.Embed(title="Invalid selection.")
         view = WarView(self.war_data, self.war_type, current=value)
         await interaction.response.edit_message(embed=embed, view=view)
+
+class WarView(discord.ui.View):
+    def __init__(self, war_data, war_type, current="overview"):
+        super().__init__(timeout=300)
+        self.add_item(WarDropdown(war_data, war_type, current))
+
+def setup(bot):
+    async def clan_tag_autocomplete(interaction: discord.Interaction, current: str):
+        data = await get_linked_clans(str(interaction.guild.id))
+        clans = data.get("clans", [])
+        return [
+            discord.app_commands.Choice(
+                name=f"{clan['name']} ({clan['tag']})",
+                value=clan['tag']
+            )
+            for clan in clans
+            if current.lower() in clan['tag'].lower() or current.lower() in clan['name'].lower()
+        ][:25]
+
+    @bot.tree.command(name="war", description="Show current war information for a clan.")
+    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
+    @discord.app_commands.autocomplete(tag=clan_tag_autocomplete)
+    async def war_command(interaction: discord.Interaction, tag: str):
+        await interaction.response.defer()
+        
+        # Normalize clan tag
+        clan_tag = tag.upper().replace("O", "0")
+        if not clan_tag.startswith("#"):
+            clan_tag = "#" + clan_tag
+        
+        war_data, war_type = await get_coc_clan_war(clan_tag)
+        
+        if war_type == "accessDenied":
+            embed = await make_private_war_log_embed(clan_tag)
+            await interaction.followup.send(embed=embed)
+            return
+        
+        if war_type == "notInWar":
+            embed = await make_not_in_war_embed(clan_tag)
+            await interaction.followup.send(embed=embed)
+            return
+        
+        # Show war overview by default
+        embed = make_overview_embed(war_data, war_type)
+        view = WarView(war_data, war_type, current="overview")
+        await interaction.followup.send(embed=embed, view=view)

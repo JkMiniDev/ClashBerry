@@ -1,16 +1,17 @@
 import os
 import discord
 import aiohttp
-from supabase import create_client, Client
-import json  # Added for max.json
+from motor.motor_asyncio import AsyncIOMotorClient
+import json  # Added for max.json and emoji loading
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize MongoDB client
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
 # Load max.json using absolute path
 try:
@@ -63,76 +64,17 @@ class PlayerEmbeds:
         "Henchmen Puppet", "Dark Orb", "Metal Pants", "Vampstache", "Noble Iron"
     ]
 
-    EMOJI_MAP = {
-        "Barbarian": "<:Barbarian:1389335307236675685>", "Archer": "<:Archer:1389335191251845231>",
-        "Giant": "<:Giant:1389335532559007814>", "Goblin": "<:Goblin:1389335575005233193>",
-        "Wall Breaker": "<:Wall_Breaker:1389335868778479717>", "Balloon": "<:Balloon:1389335241256079380>",
-        "Wizard": "<:Wizard:1389335896410685522>", "Healer": "<:Healer:1389335608538959962>",
-        "Dragon": "<:Dragon:1389335375628996710>", "P.E.K.K.A": "<:PEKKA:1389335693284610089>",
-        "Baby Dragon": "<:Baby_Dragon:1389335213921931475>", "Miner": "<:Miner:1389335649756123246>",
-        "Electro Dragon": "<:Electro_Dragon:1389335412635467907>", "Yeti": "<:Yeti:1389335923468140646>",
-        "Dragon Rider": "<:Dragon_Rider:1389335344712777810>", "Electro Titan": "<:Electro_Titan:1389335495456067644>",
-        "Root Rider": "<:Root_Rider:1389335791104163992>", "Thrower": "<:Thrower:1389335835991605379>",
-        "Minion": "<:Minion:1389335067490259105>", "Hog Rider": "<:Hog_Rider:1389334936606998658>",
-        "Valkyrie": "<:Valkyrie:1389335108896428113>", "Golem": "<:Golem:1389334870211428442>",
-        "Witch": "<:Witch:1389335145458303117>", "Lava Hound": "<:Hound:1389334971927363594>",
-        "Bowler": "<:Bowler:1389334752762400879>", "Ice Golem": "<:Ice_Golem:1389335012922490910>",
-        "Headhunter": "<:Headhunter:1389334896895463515>", "Apprentice Warden": "<:Apprentice_Warden:1389334711972921446>",
-        "Druid": "<:Druid:1389334776518807692>", "Furnace": "<:Furnace:1389334827890770062>",
-        "L.A.S.S.I": "<:LASSI:1389487671314878564>", "Electro Owl": "<:Electro_Owl:1389487627102715915>",
-        "Mighty Yak": "<:Mighty_Yak:1389487701597753404>", "Unicorn": "<:Unicorn:1389487875770421268>",
-        "Frosty": "<:Frosty:1389487647897944135>", "Diggy": "<:Diggy:1389487605615296522>",
-        "Poison Lizard": "<:Poison_Lizard:1389487747412267079>", "Phoenix": "<:Phoenix:1389487721075965962>",
-        "Spirit Fox": "<:Spirit_Fox:1389487837207859251>", "Angry Jelly": "<:Angry_Jelly:1389487961107861604>",
-        "Sneezy": "<:Sneezy:1389487576142057632>",
-        "Lightning Spell": "<:Lightning_Spell:1389514690991755425>", "Healing Spell": "<:Healing_Spell:1389514619588182076>",
-        "Rage Spell": "<:Rage_Spell:1389514709677510676>", "Jump Spell": "<:Jump_Spell:1389514668518936697>",
-        "Freeze Spell": "<:Freeze_Spell:1389514596272046100>", "Clone Spell": "<:Clone_Spell:1389514566077251584>",
-        "Invisibility Spell": "<:Invisibility_Spell:1389514646830059670>", "Recall Spell": "<:Recall_Spell:1389514740153319494>",
-        "Revive Spell": "<:Revive_Spell:1389514763209539635>", "Poison Spell": "<:Poison_Spell:1389514511496511580>",
-        "Earthquake Spell": "<:Earthquake_Spell:1389514428755742730>", "Haste Spell": "<:Haste_Spell:1389514451694391336>",
-        "Skeleton Spell": "<:Skeleton_Spell:1389514529594933389>", "Bat Spell": "<:Bat_Spell:1389785143434154135>",
-        "Overgrowth Spell": "<:Overgrowth_Spell:1389514490894352415>", "Ice Block Spell": "<:Ice_Block_Spell:1389514470933659709>",
-        "Wall Wrecker": "<:Wall_Wrecker:1389488366076035102>", "Battle Blimp": "<:Battle_Blimp:1389488182009266176>",
-        "Stone Slammer": "<:Stone_Slammer:1389488329820737537>", "Siege Barracks": "<:Siege_Barracks:1389488293980278884>",
-        "Log Launcher": "<:Log_Launcher:1389488260056875110>", "Flame Flinger": "<:Flame_Flinger:1389488228322644058>",
-        "Battle Drill": "<:Battle_Drill:1389488196097933383>", "Troop Launcher": "<:Troop_Launcher:1389488137989783683>",
-        "Barbarian King": "<:BK:1389336058910478448>", "Archer Queen": "<:AQ:1389336028124287058>",
-        "Grand Warden": "<:GW:1389336084990656766>", "Royal Champion": "<:RC:1389336174530789386>",
-        "Minion Prince": "<:MP:1389336146106126586>", "Giant Gauntlet": "<:Giant_Gauntlet:1389486373370728569>",
-        "Rocket Spear": "<:Rocket_Spear:1389485541812211772>", "Spiky Ball": "<:Spiky_Ball:1389486543609008201>",
-        "Frozen Arrow": "<:Frozen_Arrow:1389485830241914921>", "Fireball": "<:Fireball_Equipment:1389481472930615366>",
-        "Snake Bracelet": "<:Snake_Bracelet:1389486502324736000>", "Dark Crown": "<:Dark_Crown:1389486099436671128>",
-        "Magic Mirror": "<:Magic_Mirror:1389485991529549854>", "Electro Boots": "<:Electro_Boots:1389485474560610316>",
-        "Action Figure": "<:Action_Figure:1389485645558448168>", "Barbarian Puppet": "<:Barbarian_Puppet:1389486300289306675>",
-        "Rage Vial": "<:Rage_Vial:1389486468249948200>", "Archer Puppet": "<:Archer_Puppet:1389485687467806780>",
-        "Invisibility Vial": "<:Invisibility_Vial:1389485950471508059>", "Eternal Tome": "<:Eternal_Tome:1389481544938291343>",
-        "Life Gem": "<:Life_Gem:1389481627733852200>", "Seeking Shield": "<:Seeking_Shield:1389485584657027164>",
-        "Royal Gem": "<:Royal_Gem:1389485562821480478>", "Earthquake Boots": "<:Earthquake_Boots:1389486333029908521>",
-        "Hog Rider Puppet": "<:Hog_Rider_Puppet:1389485508874338426>", "Haste Vial": "<:Haste_Vial:1389485494378827839>",
-        "Giant Arrow": "<:Giant_Arrow:1389485842594267248>", "Healer Puppet": "<:Healer_Puppet:1389485904497741824>",
-        "Rage Gem": "<:Rage_Gem:1389481664731938877>", "Healing Tome": "<:Healing_Tome:1389481568673726515>",
-        "Henchmen Puppet": "<:Henchmen_Puppet:1389486155308863488>", "Dark Orb": "<:Dark_Orb:1389486134156984421>",
-        "Metal Pants": "<:Metal_Pants:1389486183435866113>", "Vampstache": "<:Vampstache:1389486580200374302>",
-        "Noble Iron": "<:Noble_Iron:1389486200150036481>",
-        "TH1": "<:TH1:1389337801044131933>",
-        "TH2": "<:TH2:1389338126907998238>",
-        "TH3": "<:TH3:1389338161372729556>",
-        "TH4": "<:TH4:1389338196155830373>",
-        "TH5": "<:TH5:1389338267044020375>",
-        "TH6": "<:TH6:1389338294055079956>",
-        "TH7": "<:TH7:1389338322639523910>",
-        "TH8": "<:TH8:1389338353907929278>",
-        "TH9": "<:TH9:1389338445863714826>",
-        "TH10": "<:TH10:1389337837756743770>",
-        "TH11": "<:TH11:1389337873526030517>",
-        "TH12": "<:TH12:1389337901132677202>",
-        "TH13": "<:TH13:1389337944837591152>",
-        "TH14": "<:TH14:1389337974185136189>",
-        "TH15": "<:TH15:1389338002114744362>",
-        "TH16": "<:TH16:1389338032766980247>",
-        "TH17": "<:TH17:1389338065650319430>"
-    }
+    # Load emoji mappings from JSON files
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(script_dir, 'commands', 'emoji', 'town_halls.json'), 'r') as f:
+        TH_EMOJIS = json.load(f)
+    with open(os.path.join(script_dir, 'commands', 'emoji', 'home_units.json'), 'r') as f:
+        UNIT_EMOJIS = json.load(f)
+    
+    # Combine all emojis into one map for compatibility
+    EMOJI_MAP = {**UNIT_EMOJIS}
+    for th_level, emoji in TH_EMOJIS.items():
+        EMOJI_MAP[f"TH{th_level}"] = emoji
 # Profile Info
     @staticmethod
     def format_number(number):
@@ -223,29 +165,8 @@ class PlayerEmbeds:
         )
         embed.add_field(name="Overall Stats", value=overall_stats, inline=False)
 
-        # Discord field with Supabase query
-        try:
-            player_tag = player_data.get("tag", "")
-            # Query all records and check if player_tag is in verified or unverified lists
-            response = supabase.table("linked_players").select("discord_id, verified, unverified").execute()
-            discord_id = "Not Linked"
-            verified = False
-            if response.data:
-                for record in response.data:
-                    if player_tag in record.get("verified", []):
-                        discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
-                        verified = True
-                        break
-                    elif player_tag in record.get("unverified", []):
-                        discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
-                        verified = False
-                        break
-            verified_emoji = "<:Verified:1390721846420439051>"  # From /accounts command
-            discord_value = f"{discord_id} {verified_emoji}" if verified and discord_id != "Not Linked" else discord_id
-        except Exception as e:
-            print(f"Error querying Supabase for linked player: {str(e)}")
-            discord_value = "Not Linked"
-
+        # Discord field - will be set by the calling function
+        discord_value = player_data.get("discord_info", "Not Linked")
         embed.add_field(name="Discord", value=discord_value, inline=False)
 
         # League icon (if available)
@@ -494,6 +415,10 @@ class ProfileButtonView(discord.ui.View):
             await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
             return
         
+        # Get Discord info for the refreshed player data
+        discord_info = await get_discord_info_for_player(fresh_data.get("tag", ""))
+        fresh_data["discord_info"] = discord_info
+        
         new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
         if self.current_view == "Profile Overview":
             embed = PlayerEmbeds.player_info(fresh_data)
@@ -512,11 +437,30 @@ async def get_coc_player(player_tag):
             print(f"get_coc_player failed with status: {resp.status}")
             return None
 
+async def get_discord_info_for_player(player_tag):
+    """Get Discord info for a specific player tag"""
+    try:
+        linked_players_collection = db.linked_players
+        cursor = linked_players_collection.find({})
+        async for record in cursor:
+            if player_tag in record.get("verified", []):
+                discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
+                verified_emoji = "<:Verified:1390721846420439051>"
+                return f"{discord_id} {verified_emoji}"
+            elif player_tag in record.get("unverified", []):
+                discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
+                return discord_id
+        return "Not Linked"
+    except Exception as e:
+        print(f"Error querying MongoDB for linked player: {str(e)}")
+        return "Not Linked"
+
 async def get_linked_players(discord_id):
     try:
-        response = supabase.table("linked_players").select("*").eq("discord_id", discord_id).execute()
-        if response.data:
-            user_data = response.data[0]
+        linked_players_collection = db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": discord_id})
+        if result:
+            user_data = result
             accounts = []
             for tag in user_data.get("verified", []) + user_data.get("unverified", []):
                 player_data = await get_coc_player(tag)
@@ -525,7 +469,7 @@ async def get_linked_players(discord_id):
             return accounts
         return []
     except Exception as e:
-        print(f"Supabase get_linked_players error: {e}")
+        print(f"MongoDB get_linked_players error: {e}")
         return []
 
 def setup(bot):
@@ -549,6 +493,10 @@ def setup(bot):
         if not player_data:
             await interaction.followup.send("No account found for the provided tag.", ephemeral=True)
             return
+
+        # Get Discord info for the player
+        discord_info = await get_discord_info_for_player(player_data.get("tag", ""))
+        player_data["discord_info"] = discord_info
 
         view = ProfileButtonView(player_data, current_view="Profile Overview")
         embed = PlayerEmbeds.player_info(player_data)

@@ -1,28 +1,14 @@
 import os
 import discord
 import aiohttp
-from supabase import create_client, Client
+from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
+import json
 
-TH_EMOJIS = {
-    17: "<:TH17:1389338065650319430>",
-    16: "<:TH16:1389338032766980247>",
-    15: "<:TH15:1389338002114744362>",
-    14: "<:TH14:1389337974185136189>",
-    13: "<:TH13:1389337944837591152>",
-    12: "<:TH12:1389337901132677202>",
-    11: "<:TH11:1389337873526030517>",
-    10: "<:TH10:1389337837756743770>",
-    9:  "<:TH9:1389338445863714826>",
-    8:  "<:TH8:1389338353907929278>",
-    7:  "<:TH7:1389338322639523910>",
-    6:  "<:TH6:1389338294055079956>",
-    5:  "<:TH5:1389338267044020375>",
-    4:  "<:TH4:1389338196155830373>",
-    3:  "<:TH3:1389338161372729556>",
-    2:  "<:TH2:1389338126907998238>",
-    1:  "<:TH1:1389337801044131933>"
-}
+# Load TH emojis from JSON
+script_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
+    TH_EMOJIS = json.load(f)
 
 CAPITAL_HALL_EMOJIS = {
     10: "<:Capital_Hall10:1390930893706887268>", 9: "<:Capital_Hall9:1390930868222169128>", 8: "<:Capital_Hall8:1390930846952853504>", 7: "<:Capital_Hall7:1390930821845745674>",
@@ -91,9 +77,12 @@ CLAN_TYPE_MAP = {
 
 # ---------- Environment Variables ----------
 COC_API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+
+# Initialize MongoDB client
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
 # ---------- API & DB Utilities ----------
 async def get_coc_clan(clan_tag):
@@ -111,12 +100,13 @@ async def get_clan_season(clan_tag):
 
 async def get_linked_clans(guild_id):
     try:
-        response = supabase.table("linked_clans").select("*").eq("guild_id", guild_id).execute()
-        if response.data:
-            return response.data[0]
+        linked_clans_collection = db.linked_clans
+        result = await linked_clans_collection.find_one({"guild_id": guild_id})
+        if result:
+            return result
         return {"guild_id": guild_id, "clans": []}
     except Exception as e:
-        print(f"Supabase get_linked_clans error: {e}")
+        print(f"MongoDB get_linked_clans error: {e}")
         return {"guild_id": guild_id, "clans": []}
 
 # ---------- Autocomplete ----------
@@ -162,7 +152,7 @@ def setup(bot):
         location = clan_data.get("location", {}).get("name", "None")
         clan_type = CLAN_TYPE_MAP.get(clan_data.get("type", "?"), clan_data.get("type", "?"))
         required_th = clan_data.get("requiredTownhallLevel", "?")
-        required_th_emoji = TH_EMOJIS.get(required_th, "")
+        required_th_emoji = TH_EMOJIS.get(str(required_th), "")
         required_trophies = clan_data.get("requiredTrophies", "?")
 
         # ========== DESCRIPTION ==========
@@ -197,7 +187,7 @@ def setup(bot):
                 th_counts[th] = th_counts.get(th, 0) + 1
         th_stats = []
         for th in sorted(th_counts.keys(), reverse=True):
-            emoji = TH_EMOJIS.get(th, f"TH{th}")
+            emoji = TH_EMOJIS.get(str(th), f"TH{th}")
             th_stats.append(f"{emoji} {th_counts[th]}")
         th_stats_str = " ".join(th_stats) if th_stats else "N/A"
 
@@ -301,7 +291,3 @@ def setup(bot):
         badge_url = clan_data.get("badgeUrls", {}).get("large")
 
         await interaction.followup.send(embed=embed, view=ClanButtonView(coc_url, badge_url))
-        
-        coc_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag={clan_tag[1:]}" if clan_tag.startswith("#") else clan_tag
-
-        await interaction.followup.send(embed=embed, view=OpenIngameButton(coc_url))

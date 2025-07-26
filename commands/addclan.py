@@ -1,15 +1,16 @@
 import os
 import discord
 import aiohttp
-from supabase import create_client, Client
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # Environment variables
 COC_API_TOKEN = os.getenv("API_TOKEN")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize MongoDB client
+mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+db = mongodb_client[MONGODB_DATABASE]
 
 async def get_coc_clan(clan_tag):
     url = f"https://cocproxy.royaleapi.dev/v1/clans/{clan_tag.replace('#', '%23')}"
@@ -22,19 +23,21 @@ async def get_coc_clan(clan_tag):
 
 async def get_linked_clans(guild_id):
     try:
-        response = supabase.table("linked_clans").select("*").eq("guild_id", guild_id).execute()
-        if response.data:
-            return response.data[0]
+        linked_clans_collection = db.linked_clans
+        result = await linked_clans_collection.find_one({"guild_id": guild_id})
+        if result:
+            return result
         return {"guild_id": guild_id, "clans": []}
     except Exception as e:
-        print(f"Supabase get_linked_clans error: {e}")  # Debug log
+        print(f"MongoDB get_linked_clans error: {e}")
         return {"guild_id": guild_id, "clans": []}
 
 async def save_linked_clans(data):
     try:
-        supabase.table("linked_clans").upsert(data).execute()
+        linked_clans_collection = db.linked_clans
+        await linked_clans_collection.replace_one({"guild_id": data["guild_id"]}, data, upsert=True)
     except Exception as e:
-        print(f"Supabase save_linked_clans error: {e}")  # Debug log
+        print(f"MongoDB save_linked_clans error: {e}")
 
 def setup(bot):
     @bot.tree.command(name="addclan", description="Link a clan to this server.")
