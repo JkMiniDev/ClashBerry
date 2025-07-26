@@ -33,7 +33,7 @@ def setup(bot):
                     )
                 )
 
-        image_path = os.path.join(os.path.dirname(__file__), "file.jpg")
+        image_path = os.path.join(os.path.dirname(__file__), "assets", "file.jpg")
         file = discord.File(image_path, filename="file.jpg")
 
         await interaction.response.send_message(
