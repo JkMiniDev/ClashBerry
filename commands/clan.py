@@ -147,28 +147,21 @@ def setup(bot):
         th_stats_str = " ".join(th_stats) if th_stats else "N/A"
 
         # ========== EMBED ==========
-        # Create embed with clickable title URL
+        # Create clickable title URL
+        title_url = None
         if clan_tag and clan_tag.startswith('#'):
-            tag_clean = clan_tag[1:]  # Remove the #
+            tag_clean = clan_tag[1:]
             title_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
-            embed = discord.Embed(
-                title=f"{clan_name} ({clan_tag})",
-                url=title_url,
-                color=0xcccccc,
-                description=(
-                    f"<:Clan:1390949992918945792> {clan_level} <:People:1390950050196226129> {member_count} <:Trophy:1390652405649248347> {trophies}\n"
-                    f"{league_emoji} {league}"
-                )
+        
+        embed = discord.Embed(
+            title=f"{clan_name} ({clan_tag})",
+            url=title_url,
+            color=0xcccccc,
+            description=(
+                f"<:Clan:1390949992918945792> {clan_level} <:People:1390950050196226129> {member_count} <:Trophy:1390652405649248347> {trophies}\n"
+                f"{league_emoji} {league}"
             )
-        else:
-            embed = discord.Embed(
-                title=f"{clan_name} ({clan_tag})",
-                color=0xcccccc,
-                description=(
-                    f"<:Clan:1390949992918945792> {clan_level} <:People:1390950050196226129> {member_count} <:Trophy:1390652405649248347> {trophies}\n"
-                    f"{league_emoji} {league}"
-                )
-            )
+        )
         if clan_data.get("badgeUrls", {}).get("large"):
             embed.set_thumbnail(url=clan_data["badgeUrls"]["large"])
 
