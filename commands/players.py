@@ -90,8 +90,19 @@ class PlayerEmbeds:
 
     @staticmethod
     def player_info(player_data):
+        player_tag = player_data.get('tag', '')
+        player_name = player_data.get('name', '?')
+        
+        # Create clickable title with Clash of Clans deep link
+        if player_tag and player_tag.startswith('#'):
+            tag_clean = player_tag[1:]  # Remove the #
+            title_url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag_clean}"
+            title = f"[{player_name} ({player_tag})]({title_url})"
+        else:
+            title = f"{player_name} ({player_tag})"
+        
         embed = discord.Embed(
-            title=f"{player_data.get('name', '?')} ({player_data.get('tag', '?')})",
+            title=title,
             color=0xcccccc
         )
 
