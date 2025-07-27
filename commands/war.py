@@ -330,7 +330,7 @@ def make_overview_embed(war_data, war_type):
     if opponent_tag and opponent_tag.startswith('#'):
         tag_clean = opponent_tag[1:]
         opponent_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
-        opponent_display = f"[{opponent_name} ({opponent_tag})]({opponent_url})"
+        opponent_display = f"**[{opponent_name} ({opponent_tag})]({opponent_url})**"
     else:
         opponent_display = f"**{opponent_name} ({opponent_tag})**"
     
