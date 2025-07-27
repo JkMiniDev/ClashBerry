@@ -93,14 +93,11 @@ async def remove_tag_from_other_users(player_tag, current_discord_id):
             if user["discord_id"] == current_discord_id:
                 continue
             updated = False
-            if player_tag in user.get("verified", []):
-                user["verified"].remove(player_tag)
-                updated = True
-            if player_tag in user.get("unverified", []):
-                user["unverified"].remove(player_tag)
-                updated = True
-            if updated:
-                await linked_players_collection.replace_one({"discord_id": user["discord_id"]}, user)
+            # Check if tag exists in verified list (now as objects)
+            user["verified"] = [acc for acc in user.get("verified", []) if acc.get("tag") != player_tag]
+            user["unverified"] = [acc for acc in user.get("unverified", []) if acc.get("tag") != player_tag]
+            # Always update since we're filtering the lists
+            await linked_players_collection.replace_one({"discord_id": user["discord_id"]}, user)
     except Exception as e:
         print(f"MongoDB remove_tag_from_other_users error: {e}")  # Debug log
 
@@ -135,7 +132,8 @@ def setup(bot):
         user_data = await get_linked_players(target_user_id)
 
         # Check if tag is already linked to the interaction user and no API token provided
-        if not api_token and player_tag in (user_data.get("verified", []) + user_data.get("unverified", [])) and target_user_id == str(interaction.user.id):
+        all_linked_tags = [acc.get("tag") for acc in user_data.get("verified", [])] + [acc.get("tag") for acc in user_data.get("unverified", [])]
+        if not api_token and player_tag in all_linked_tags and target_user_id == str(interaction.user.id):
             embed = discord.Embed(
                 title="Link Error",
                 description=f"**{player_name} ({player_tag})** is already linked with your account.",
@@ -148,7 +146,8 @@ def setup(bot):
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
         async for user_data_other in cursor:
-            if user_data_other["discord_id"] != target_user_id and player_tag in (user_data_other.get("verified", []) + user_data_other.get("unverified", [])):
+            other_linked_tags = [acc.get("tag") for acc in user_data_other.get("verified", [])] + [acc.get("tag") for acc in user_data_other.get("unverified", [])]
+            if user_data_other["discord_id"] != target_user_id and player_tag in other_linked_tags:
                 if not api_token:
                     embed = discord.Embed(
                         title="Link Error",
@@ -172,10 +171,10 @@ def setup(bot):
             # Remove tag from other users if verified
             await remove_tag_from_other_users(player_tag, target_user_id)
             # Move from unverified to verified if already linked, or add to verified
-            if player_tag in user_data.get("unverified", []):
-                user_data["unverified"].remove(player_tag)
-            if player_tag not in user_data.get("verified", []):
-                user_data["verified"].append(player_tag)
+            user_data["unverified"] = [acc for acc in user_data.get("unverified", []) if acc.get("tag") != player_tag]
+            verified_tags = [acc.get("tag") for acc in user_data.get("verified", [])]
+            if player_tag not in verified_tags:
+                user_data["verified"].append({"tag": player_tag, "name": player_name})
             # Save to MongoDB
             await save_linked_players(user_data)
             # Send success embed for verified link
@@ -188,8 +187,10 @@ def setup(bot):
             return
 
         # Add to unverified if no token provided and not already linked
-        if player_tag not in user_data.get("unverified", []) and player_tag not in user_data.get("verified", []):
-            user_data["unverified"].append(player_tag)
+        unverified_tags = [acc.get("tag") for acc in user_data.get("unverified", [])]
+        verified_tags = [acc.get("tag") for acc in user_data.get("verified", [])]
+        if player_tag not in unverified_tags and player_tag not in verified_tags:
+            user_data["unverified"].append({"tag": player_tag, "name": player_name})
             # Save to MongoDB
             await save_linked_players(user_data)
             # Send success embed for unverified link
