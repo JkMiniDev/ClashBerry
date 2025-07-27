@@ -44,18 +44,13 @@ def setup(bot):
     async def player_tag_autocomplete(interaction: discord.Interaction, current: str):
         user_data = await get_linked_players(str(interaction.user.id))
         accounts = user_data.get("verified", []) + user_data.get("unverified", [])
-        options = []
-        for tag in accounts:
-            player_data = await get_coc_player(tag)
-            player_name = player_data.get("name", tag) if player_data else tag
-            options.append({"name": player_name, "tag": tag})
         return [
             discord.app_commands.Choice(
-                name=f"{acc['name']} ({acc['tag']})",
-                value=acc['tag']
+                name=f"{acc.get('name', acc.get('tag', 'Unknown'))} ({acc.get('tag', 'Unknown')})",
+                value=acc.get('tag', '')
             )
-            for acc in options
-            if current.lower() in acc['tag'].lower() or current.lower() in acc['name'].lower()
+            for acc in accounts
+            if current.lower() in acc.get('tag', '').lower() or current.lower() in acc.get('name', '').lower()
         ][:25]
 
     @bot.tree.command(name="unlinkaccount", description="Unlink one of your account.")
@@ -72,7 +67,10 @@ def setup(bot):
         user_id = str(interaction.user.id)
         user_data = await get_linked_players(user_id)
 
-        if player_tag not in user_data.get("verified", []) and player_tag not in user_data.get("unverified", []):
+        verified_tags = [acc.get("tag") for acc in user_data.get("verified", [])]
+        unverified_tags = [acc.get("tag") for acc in user_data.get("unverified", [])]
+        
+        if player_tag not in verified_tags and player_tag not in unverified_tags:
             embed = discord.Embed(
                 title="Unlink Error",
                 description=f"**{player_tag}** is not linked to your Discord.",
@@ -82,10 +80,8 @@ def setup(bot):
             return
 
         # Remove the tag from verified/unverified
-        if player_tag in user_data["verified"]:
-            user_data["verified"].remove(player_tag)
-        if player_tag in user_data["unverified"]:
-            user_data["unverified"].remove(player_tag)
+        user_data["verified"] = [acc for acc in user_data.get("verified", []) if acc.get("tag") != player_tag]
+        user_data["unverified"] = [acc for acc in user_data.get("unverified", []) if acc.get("tag") != player_tag]
 
         await save_linked_players(user_data)
 
