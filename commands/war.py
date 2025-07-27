@@ -271,7 +271,7 @@ def make_clan_roster_embed(war_data, war_type):
     for m in members:
         th_icon = th_emoji(m.get('townhallLevel', '?'))
         padded_name = pad_name(m['name'], 15)
-        lines.append(f"{th_icon} `{padded_name}             `")
+        lines.append(f"{th_icon} `{padded_name}        {m['tag']} `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
@@ -291,7 +291,7 @@ def make_opponent_roster_embed(war_data, war_type):
     for m in members:
         th_icon = th_emoji(m.get('townhallLevel', '?'))
         padded_name = pad_name(m['name'], 15)
-        lines.append(f"{th_icon} `{padded_name}             `")
+        lines.append(f"{th_icon} `{padded_name}        {m['tag']} `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
@@ -307,13 +307,34 @@ def make_overview_embed(war_data, war_type):
     clan = war_data.get("clan", {})
     opponent = war_data.get("opponent", {})
     team_size = war_data.get("teamSize", 0)
+    
+    # Create clickable title URL for clan
+    clan_tag = clan.get('tag', '')
+    clan_name = clan.get('name', '?')
+    title_url = None
+    if clan_tag and clan_tag.startswith('#'):
+        tag_clean = clan_tag[1:]
+        title_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
+    
     embed = discord.Embed(
-        title=f"{clan.get('name')} ({clan.get('tag')})",
+        title=f"{clan_name} ({clan_tag})",
+        url=title_url,
         color=EMBED_COLOR
     )
     embed.set_thumbnail(url=clan.get("badgeUrls", {}).get("large", ""))
     desc = []
-    desc.append(f"**Opponent Clan**\n{opponent.get('name', '?')} ({opponent.get('tag', '?')})")
+    
+    # Create clickable opponent clan name
+    opponent_tag = opponent.get('tag', '?')
+    opponent_name = opponent.get('name', '?')
+    if opponent_tag and opponent_tag.startswith('#'):
+        tag_clean = opponent_tag[1:]
+        opponent_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
+        opponent_display = f"[{opponent_name} ({opponent_tag})]({opponent_url})"
+    else:
+        opponent_display = f"{opponent_name} ({opponent_tag})"
+    
+    desc.append(f"**Opponent Clan**\n{opponent_display}")
     desc.append(f"**Team Size**\n{team_size} vs {team_size}")
     now = datetime.datetime.utcnow()
     status = war_data.get("state", "-")
