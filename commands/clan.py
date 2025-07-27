@@ -5,63 +5,18 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import json
 
-# Load TH emojis from JSON
+# Load emoji mappings from JSON files
 script_dir = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
     TH_EMOJIS = json.load(f)
+with open(os.path.join(script_dir, 'emoji', 'capital_hall.json'), 'r') as f:
+    CAPITAL_HALL_EMOJIS = json.load(f)
 
-CAPITAL_HALL_EMOJIS = {
-    10: "<:Capital_Hall10:1390930893706887268>", 9: "<:Capital_Hall9:1390930868222169128>", 8: "<:Capital_Hall8:1390930846952853504>", 7: "<:Capital_Hall7:1390930821845745674>",
-    6: "<:Capital_Hall6:1390930789826564207>", 5: "<:Capital_Hall5:1390930760105459764>", 4: "<:Capital_Hall4:1390930726928646174>", 3: "<:Capital_Hall3:1390930691633451119>", 2: "<:Capital_Hall2:1390930665817767937>", 1: "<:Capital_Hall1:1390930636814028832>"
-}
+with open(os.path.join(script_dir, 'emoji', 'cwl_league.json'), 'r') as f:
+    LEAGUE_EMOJIS = json.load(f)
 
-LEAGUE_EMOJIS = {
-    "Unranked": "<:Unranked:1390942114875179079>",
-    "Bronze League III": "<:CWL_Bronze3:1390931019275964426>",
-    "Bronze League II": "<:CWL_Bronze2:1390930987034349732>",
-    "Bronze League I": "<:CWL_Bronze1:1390930959951593553>",
-    "Silver League III": "<:CWL_Silver3:1390931121495212188>",
-    "Silver League II": "<:CWL_Silver2:1390931089727557653>",
-    "Silver League I": "<:CWL_Silver1:1390931056982757409>",
-    "Gold League III": "<:CWL_Gold3:1390931242832367639>",
-    "Gold League II": "<:CWL_Gold2:1390931211827806339>",
-    "Gold League I": "<:GoldI:1234567890000000010>",
-    "Crystal League III": "<:CWL_Crystal3:1390931578578010224>",
-    "Crystal League II": "<:CWL_Crystal2:1390931553835810960>",
-    "Crystal League I": "<:CWL_Crystal1:1390931527680135239>",
-    "Master League III": "<:CWL_Master3:1390931654809489511>",
-    "Master League II": "<:CWL_Master2:1390931632206381168>",
-    "Master League I": "<:CWL_Master1:1390931603886178365>",
-    "Champion League III": "<:CWL_Champion3:1390931733435650139>",
-    "Champion League II": "<:CWL_Champion2:1390931713307185303>",
-    "Champion League I": "<:CWL_Champion1:1390931693073989703>"
-}
-
-CAPITAL_LEAGUE_EMOJIS = {
-    "Unranked": "<:Unranked:1390942114875179079>",
-    "Bronze League III": "<:Bronze_III:1390944988648571062>",
-    "Bronze League II": "<:Bronze_II:1390944540235661424>",
-    "Bronze League I": "<:Bronze_I:1390944515799646278>",
-    "Silver League III": "<:Silver_III:1390944489060696137>",
-    "Silver League II": "<:Silver_II:1390944437911425125>",
-    "Silver League I": "<:Silver_I:1390944408030937160>",
-    "Gold League III": "<:Gold_III:1390944375751573575>",
-    "Gold League II": "<:Gold_II:1390944347800997958>",
-    "Gold League I": "<:Gold_I:1390944202392604672>",
-    "Crystal League III": "<:Crystal_III:1390943009708965908>",
-    "Crystal League II": "<:Crystal_II:1390942951307218994>",
-    "Crystal League I": "<:Crystal_I:1390942923423744031>",
-    "Master League III": "<:Master_III:1390942891584520233>",
-    "Master League II": "<:Master_II:1390942868406931496>",
-    "Master League I": "<:Master_I:1390942841718575155>",
-    "Champion League III": "<:Champion_III:1390942814350741524>",
-    "Champion League II": "<:Champion_II:1390942760340688936>",
-    "Champion League I": "<:Champion_I:1390942736332623913>",
-    "Titan League III": "<:Titan_III:1390942706737348608>",
-    "Titan League II": "<:Titan_II:1390942680858624173>",
-    "Titan League I": "<:Titan_I:1390942634905964595>",
-    "Legend League": "<:Legend:1390942592060883076>"
-}
+with open(os.path.join(script_dir, 'emoji', 'league.json'), 'r') as f:
+    CAPITAL_LEAGUE_EMOJIS = json.load(f)
 
 WAR_LOG_EMOJIS = {
     "public": "<:Pad_Unlock:1390947990994419733>",   # Use your custom emoji if preferred
@@ -176,7 +131,7 @@ def setup(bot):
         capital_league = clan_data.get("capitalLeague", {}).get("name", "Unranked")  # Keep full name, e.g., "Silver II"
         capital_league_emoji = CAPITAL_LEAGUE_EMOJIS.get(capital_league, CAPITAL_LEAGUE_EMOJIS["Unranked"])
         capital_hall = clan_data.get("clanCapital", {}).get("capitalHallLevel", "?")
-        capital_hall_emoji = CAPITAL_HALL_EMOJIS.get(capital_hall, "")
+        capital_hall_emoji = CAPITAL_HALL_EMOJIS.get(str(capital_hall), "")
         capital_points = clan_data.get("clanCapitalPoints", "?")
 
         # ========== TOWN HALL STATS ==========
