@@ -1,4 +1,4 @@
-name: ClashBerryDiscord
+name: ClashBerry - Discord
 
 on:
   workflow_dispatch:
