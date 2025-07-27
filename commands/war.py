@@ -133,14 +133,15 @@ def make_attacks_embed(war_data, war_type):
     done_attacks = sum(len(m.get("attacks", [])) for m in members)
 
     # Main attacks header
-    header = f"**Attacks {done_attacks}/{total_attacks}**"
+    header = f"**Completed Attacks {done_attacks}/{total_attacks}**"
     lines = []
     for m in members:
         th_icon = th_emoji(m.get("townhallLevel", "?"))
         for atk in sorted(m.get("attacks", []), key=lambda a: -a.get("order", 0)):
             stars = _star_string(atk.get("stars", 0))
             percent = atk.get("destructionPercentage", 0)
-            lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {stars} {percent}%")
+            name = m['name'][:15]  # Limit name length
+            lines.append(f"{th_icon} `{name:<15} {stars}  {percent:>2}% `")
 
     if not lines:
         lines.append("No attacks recorded yet.")
@@ -152,33 +153,37 @@ def make_attacks_embed(war_data, war_type):
             attacks_done = len(m.get("attacks", []))
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
-                remaining_lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {attacks_done}/{attacks_expected}")
+                name = m['name'][:15]  # Limit name length
+                remaining_lines.append(f"{th_icon} `{name:<15}        {attacks_done}/{attacks_expected} `")
 
         if remaining_lines:
             lines.append("")  # Empty line for separation
-            lines.append("**Remaining Attacks**")
+            remaining_count = sum(attacks_expected - len(m.get("attacks", [])) for m in members if len(m.get("attacks", [])) < attacks_expected)
+            lines.append(f"**Remaining Attacks {remaining_count}/{total_attacks}**")
             lines.extend(remaining_lines)
         else:
             lines.append("")
-            lines.append("**Remaining Attacks**")
+            lines.append("**Remaining Attacks 0/0**")
             lines.append("All attacks have been used!")
 
-    # Add missed attacks section if CWL war ended
-    if war_data.get("state") == "warEnded" and war_type == "cwl":
+    # Add missed attacks section if war ended (both CWL and normal)
+    if war_data.get("state") == "warEnded":
         missed_lines = []
         for m in members:
             attacks_done = len(m.get("attacks", []))
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
-                missed_lines.append(f"{th_icon} {m['name']} ({m['tag']}) - {attacks_done}/{attacks_expected}")
+                name = m['name'][:15]  # Limit name length
+                missed_lines.append(f"{th_icon} `{name:<15}        {attacks_done}/{attacks_expected} `")
 
         if missed_lines:
             lines.append("")  # Empty line for separation
-            lines.append("**Missed Attacks**")
+            missed_count = sum(attacks_expected - len(m.get("attacks", [])) for m in members if len(m.get("attacks", [])) < attacks_expected)
+            lines.append(f"**Missed Attacks {missed_count}/{total_attacks}**")
             lines.extend(missed_lines)
         else:
             lines.append("")
-            lines.append("**Missed Attacks**")
+            lines.append("**Missed Attacks 0/0**")
             lines.append("No missed attacks!")
 
     embed = discord.Embed(
@@ -216,7 +221,10 @@ def make_defences_embed(war_data, war_type):
                 })
     defences.sort(key=lambda d: -d["order"])
     header = f"**Defence {len(defences)}/{total_attacks}**"
-    lines = [f"{d['th']} {d['name']} ({d['tag']}) - {d['stars']} {d['percent']}%" for d in defences]
+    lines = []
+    for d in defences:
+        name = d['name'][:15]  # Limit name length
+        lines.append(f"{d['th']} `{name:<15} {d['stars']}  {d['percent']:>2}% `")
     if not lines:
         lines.append("No defences recorded yet.")
     embed = discord.Embed(
@@ -232,7 +240,11 @@ def make_clan_roster_embed(war_data, war_type):
     clan = war_data.get("clan", {})
     members = sorted(clan.get("members", []), key=lambda m: int(m.get("townhallLevel", 1)), reverse=True)
     header = "**<:People:1390950050196226129> Clan Roster**"
-    lines = [f"{th_emoji(m.get('townhallLevel', '?'))} {m['name']} ({m['tag']})" for m in members]
+    lines = []
+    for m in members:
+        th_icon = th_emoji(m.get('townhallLevel', '?'))
+        name = m['name'][:15]  # Limit name length
+        lines.append(f"{th_icon} `{name:<15}             `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
@@ -248,7 +260,11 @@ def make_opponent_roster_embed(war_data, war_type):
     opponent = war_data.get("opponent", {})
     members = sorted(opponent.get("members", []), key=lambda m: int(m.get("townhallLevel", 1)), reverse=True)
     header = "**<:People:1390950050196226129> Opponent Roster**"
-    lines = [f"{th_emoji(m.get('townhallLevel', '?'))} {m['name']} ({m['tag']})" for m in members]
+    lines = []
+    for m in members:
+        th_icon = th_emoji(m.get('townhallLevel', '?'))
+        name = m['name'][:15]  # Limit name length
+        lines.append(f"{th_icon} `{name:<15}             `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
