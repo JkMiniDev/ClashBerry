@@ -147,8 +147,16 @@ def setup(bot):
         th_stats_str = " ".join(th_stats) if th_stats else "N/A"
 
         # ========== EMBED ==========
+        # Create clickable title with Clash of Clans deep link
+        if clan_tag and clan_tag.startswith('#'):
+            tag_clean = clan_tag[1:]  # Remove the #
+            title_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
+            title = f"[{clan_name} ({clan_tag})]({title_url})"
+        else:
+            title = f"{clan_name} ({clan_tag})"
+        
         embed = discord.Embed(
-            title=f"{clan_name} ({clan_tag})",
+            title=title,
             color=0xcccccc,
             description=(
                 f"<:Clan:1390949992918945792> {clan_level} <:People:1390950050196226129> {member_count} <:Trophy:1390652405649248347> {trophies}\n"
