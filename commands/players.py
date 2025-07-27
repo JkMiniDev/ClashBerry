@@ -415,8 +415,14 @@ class ProfileButtonView(discord.ui.View):
             await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
             return
         
+        # Check for name changes and update database if needed
+        player_tag = fresh_data.get("tag", "")
+        player_name = fresh_data.get("name", "")
+        if player_tag and player_name:
+            await update_player_name_if_changed(player_tag, player_name)
+        
         # Get Discord info for the refreshed player data
-        discord_info = await get_discord_info_for_player(fresh_data.get("tag", ""))
+        discord_info = await get_discord_info_for_player(player_tag)
         fresh_data["discord_info"] = discord_info
         
         new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
@@ -443,17 +449,48 @@ async def get_discord_info_for_player(player_tag):
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
         async for record in cursor:
-            if player_tag in record.get("verified", []):
+            verified_tags = [acc.get("tag") for acc in record.get("verified", [])]
+            unverified_tags = [acc.get("tag") for acc in record.get("unverified", [])]
+            
+            if player_tag in verified_tags:
                 discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
                 verified_emoji = "<:Verified:1390721846420439051>"
                 return f"{discord_id} {verified_emoji}"
-            elif player_tag in record.get("unverified", []):
+            elif player_tag in unverified_tags:
                 discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
                 return discord_id
         return "Not Linked"
     except Exception as e:
         print(f"Error querying MongoDB for linked player: {str(e)}")
         return "Not Linked"
+
+async def update_player_name_if_changed(player_tag, new_name):
+    """Update player name in database if it has changed"""
+    try:
+        linked_players_collection = db.linked_players
+        cursor = linked_players_collection.find({})
+        async for record in cursor:
+            updated = False
+            
+            # Update verified accounts
+            for account in record.get("verified", []):
+                if account.get("tag") == player_tag and account.get("name") != new_name:
+                    account["name"] = new_name
+                    updated = True
+            
+            # Update unverified accounts
+            for account in record.get("unverified", []):
+                if account.get("tag") == player_tag and account.get("name") != new_name:
+                    account["name"] = new_name
+                    updated = True
+            
+            # Save if updated
+            if updated:
+                await linked_players_collection.replace_one({"discord_id": record["discord_id"]}, record)
+                print(f"Updated player name for {player_tag} to {new_name}")
+                
+    except Exception as e:
+        print(f"Error updating player name: {e}")
 
 async def get_linked_players(discord_id):
     try:
@@ -462,10 +499,11 @@ async def get_linked_players(discord_id):
         if result:
             user_data = result
             accounts = []
-            for tag in user_data.get("verified", []) + user_data.get("unverified", []):
-                player_data = await get_coc_player(tag)
-                player_name = player_data.get("name", tag) if player_data else tag
-                accounts.append({"name": player_name, "tag": tag})
+            for account in user_data.get("verified", []) + user_data.get("unverified", []):
+                accounts.append({
+                    "name": account.get("name", account.get("tag", "Unknown")), 
+                    "tag": account.get("tag", "")
+                })
             return accounts
         return []
     except Exception as e:
@@ -494,8 +532,14 @@ def setup(bot):
             await interaction.followup.send("No account found for the provided tag.", ephemeral=True)
             return
 
+        # Check for name changes and update database if needed
+        player_tag = player_data.get("tag", "")
+        player_name = player_data.get("name", "")
+        if player_tag and player_name:
+            await update_player_name_if_changed(player_tag, player_name)
+
         # Get Discord info for the player
-        discord_info = await get_discord_info_for_player(player_data.get("tag", ""))
+        discord_info = await get_discord_info_for_player(player_tag)
         player_data["discord_info"] = discord_info
 
         view = ProfileButtonView(player_data, current_view="Profile Overview")
