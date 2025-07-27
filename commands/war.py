@@ -4,6 +4,7 @@ import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import datetime
 import json
+import unicodedata
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
@@ -17,6 +18,32 @@ with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
     TH_EMOJIS = json.load(f)
 def th_emoji(level):
     return TH_EMOJIS.get(str(level), "")
+
+def visual_width(text):
+    """Calculate the visual width of text including unicode characters"""
+    width = 0
+    for char in text:
+        if unicodedata.east_asian_width(char) in ('F', 'W'):
+            width += 2  # Full-width or wide characters
+        elif unicodedata.combining(char):
+            width += 0  # Combining characters don't add width
+        else:
+            width += 1  # Normal characters
+    return width
+
+def pad_name(name, target_width=15):
+    """Pad name to exact visual width"""
+    name = name[:target_width]  # Truncate if too long
+    current_width = visual_width(name)
+    padding_needed = target_width - current_width
+    return name + ' ' * max(0, padding_needed)
+
+def format_percentage(percent):
+    """Format percentage with proper spacing"""
+    if percent == 100:
+        return f" {percent}%"
+    else:
+        return f"  {percent}%"
 
 async def fetch_json(url, headers):
     async with aiohttp.ClientSession() as session:
@@ -140,8 +167,8 @@ def make_attacks_embed(war_data, war_type):
         for atk in sorted(m.get("attacks", []), key=lambda a: -a.get("order", 0)):
             stars = _star_string(atk.get("stars", 0))
             percent = atk.get("destructionPercentage", 0)
-            name = m['name'][:15]  # Limit name length
-            lines.append(f"{th_icon} `{name:<15} {stars}  {percent:>2}% `")
+            padded_name = pad_name(m['name'], 15)
+            lines.append(f"{th_icon} `{padded_name} {stars}{format_percentage(percent)}`")
 
     if not lines:
         lines.append("No attacks recorded yet.")
@@ -153,8 +180,8 @@ def make_attacks_embed(war_data, war_type):
             attacks_done = len(m.get("attacks", []))
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
-                name = m['name'][:15]  # Limit name length
-                remaining_lines.append(f"{th_icon} `{name:<15}        {attacks_done}/{attacks_expected} `")
+                padded_name = pad_name(m['name'], 15)
+                remaining_lines.append(f"{th_icon} `{padded_name}        {attacks_done}/{attacks_expected} `")
 
         if remaining_lines:
             lines.append("")  # Empty line for separation
@@ -173,8 +200,8 @@ def make_attacks_embed(war_data, war_type):
             attacks_done = len(m.get("attacks", []))
             if attacks_done < attacks_expected:
                 th_icon = th_emoji(m.get("townhallLevel", "?"))
-                name = m['name'][:15]  # Limit name length
-                missed_lines.append(f"{th_icon} `{name:<15}        {attacks_done}/{attacks_expected} `")
+                padded_name = pad_name(m['name'], 15)
+                missed_lines.append(f"{th_icon} `{padded_name}        {attacks_done}/{attacks_expected} `")
 
         if missed_lines:
             lines.append("")  # Empty line for separation
@@ -223,8 +250,8 @@ def make_defences_embed(war_data, war_type):
     header = f"**Defence {len(defences)}/{total_attacks}**"
     lines = []
     for d in defences:
-        name = d['name'][:15]  # Limit name length
-        lines.append(f"{d['th']} `{name:<15} {d['stars']}  {d['percent']:>2}% `")
+        padded_name = pad_name(d['name'], 15)
+        lines.append(f"{d['th']} `{padded_name} {d['stars']}{format_percentage(d['percent'])}`")
     if not lines:
         lines.append("No defences recorded yet.")
     embed = discord.Embed(
@@ -243,8 +270,8 @@ def make_clan_roster_embed(war_data, war_type):
     lines = []
     for m in members:
         th_icon = th_emoji(m.get('townhallLevel', '?'))
-        name = m['name'][:15]  # Limit name length
-        lines.append(f"{th_icon} `{name:<15}             `")
+        padded_name = pad_name(m['name'], 15)
+        lines.append(f"{th_icon} `{padded_name}             `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
@@ -263,8 +290,8 @@ def make_opponent_roster_embed(war_data, war_type):
     lines = []
     for m in members:
         th_icon = th_emoji(m.get('townhallLevel', '?'))
-        name = m['name'][:15]  # Limit name length
-        lines.append(f"{th_icon} `{name:<15}             `")
+        padded_name = pad_name(m['name'], 15)
+        lines.append(f"{th_icon} `{padded_name}             `")
     if not lines:
         lines.append("No members listed.")
     embed = discord.Embed(
