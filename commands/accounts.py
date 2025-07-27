@@ -37,6 +37,34 @@ async def get_coc_player(player_tag):
             print(f"get_coc_player network error: {e}")  # Debug log
             return None
 
+async def update_player_name_if_changed(player_tag, new_name):
+    """Update player name in database if it has changed"""
+    try:
+        linked_players_collection = db.linked_players
+        cursor = linked_players_collection.find({})
+        async for record in cursor:
+            updated = False
+            
+            # Update verified accounts
+            for account in record.get("verified", []):
+                if account.get("tag") == player_tag and account.get("name") != new_name:
+                    account["name"] = new_name
+                    updated = True
+            
+            # Update unverified accounts
+            for account in record.get("unverified", []):
+                if account.get("tag") == player_tag and account.get("name") != new_name:
+                    account["name"] = new_name
+                    updated = True
+            
+            # Save if updated
+            if updated:
+                await linked_players_collection.replace_one({"discord_id": record["discord_id"]}, record)
+                print(f"Updated player name for {player_tag} to {new_name}")
+                
+    except Exception as e:
+        print(f"Error updating player name: {e}")
+
 async def get_linked_players(discord_id):
     try:
         linked_players_collection = db.linked_players
@@ -84,27 +112,39 @@ def setup(bot):
             await interaction.followup.send(embed=embed)
             return
 
-        # Fetch player data for each account and store with TH level for sorting
-        accounts_list = []
+        # Process accounts and fetch fresh data to check for name changes and get TH levels
         account_data = []
-        async with aiohttp.ClientSession() as session:
-            for player_tag in all_accounts:
-                player_data = await get_coc_player(player_tag)
-                if player_data:
-                    player_name = player_data.get("name", "Unknown")
-                    th_level = player_data.get("townHallLevel", 1)
-                    th_emoji = TH_EMOJI_MAP.get(str(th_level), "❓")  # Default to question mark if not found
-                    is_verified = player_tag in verified_accounts
-                    verification_mark = " <:Verified:1390721846420439051>" if is_verified else ""
-                    account_data.append({
-                        "th_level": th_level,
-                        "display": f"{th_emoji} {player_name} ({player_tag}){verification_mark}"
-                    })
-                else:
-                    account_data.append({
-                        "th_level": 0,  # Unknown accounts get lowest priority
-                        "display": f"❓ Unknown ({player_tag})"
-                    })
+        names_updated = False
+        
+        for account in all_accounts:
+            player_tag = account.get("tag", "")
+            stored_name = account.get("name", "Unknown")
+            is_verified = account in verified_accounts
+            
+            # Fetch fresh player data for TH level and name verification
+            player_data = await get_coc_player(player_tag)
+            if player_data:
+                current_name = player_data.get("name", "Unknown")
+                th_level = player_data.get("townHallLevel", 1)
+                th_emoji = TH_EMOJI_MAP.get(str(th_level), "❓")
+                
+                # Check if name has changed and update database
+                if current_name != stored_name and player_tag and current_name:
+                    await update_player_name_if_changed(player_tag, current_name)
+                    names_updated = True
+                
+                # Use current name (stored name might be outdated)
+                verification_mark = " <:Verified:1390721846420439051>" if is_verified else ""
+                account_data.append({
+                    "th_level": th_level,
+                    "display": f"{th_emoji} {current_name} ({player_tag}){verification_mark}"
+                })
+            else:
+                # Fallback to stored name if API fails
+                account_data.append({
+                    "th_level": 0,  # Unknown accounts get lowest priority
+                    "display": f"❓ {stored_name} ({player_tag})"
+                })
 
         # Sort accounts by TH level in descending order
         account_data.sort(key=lambda x: x["th_level"], reverse=True)
