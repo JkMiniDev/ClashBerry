@@ -3,7 +3,7 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-run-name: "Updated: ${{ github.repository != '' && github.event_name == 'workflow_dispatch' && format('Last modified - {0}', github.workspace) }}"
+run-name: "${{ github.event.head_commit.message || format('Manual Trigger - {0}', github.sha) }}"
 
 jobs:
   build:
@@ -13,19 +13,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get last committed file
-        id: last-commit
-        run: |
-          LAST_FILE=$(git log -1 --name-only --pretty="format:")
-          echo "Last modified file: $LAST_FILE"
-          echo "last_file=$LAST_FILE" >> $GITHUB_OUTPUT
-          echo "GITHUB_RUN_NAME=Updated: $LAST_FILE" >> $GITHUB_ENV
-
-      - name: Update run name
-        run: echo "Run name will show - Updated: ${{ steps.last-commit.outputs.last_file }}"
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -66,6 +53,7 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
+
 
       - name: Login to Azure
         uses: azure/login@v2
