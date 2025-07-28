@@ -3,22 +3,32 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-# Show last updated file name as workflow run name
-run-name: "Last Update: ${{ needs.set-run-name.outputs.run_name }}"
-
 jobs:
-  # Job to get last updated file name
+  # Job to set the run name dynamically
   set-run-name:
     runs-on: ubuntu-latest
     outputs:
-      run_name: ${{ steps.get_files.outputs.run_name }}
+      run_name: ${{ steps.files.outputs.run_name }}
     steps:
       - uses: actions/checkout@v4
-      - name: Get last updated file name
-        id: get_files
+      - name: Get all updated file names
+        id: files
         run: |
-          FILE=$(git log -1 --name-only --pretty="" | head -n 1)
-          echo "run_name=$FILE" >> $GITHUB_OUTPUT
+          FILES=$(git log -1 --name-only --pretty="" | paste -sd ", " -)
+          echo "run_name=$FILES" >> $GITHUB_OUTPUT
+          echo "Updated Files: $FILES"
+          echo "##[set-output name=run_name;]$FILES"
+          echo "::set-output name=run_name::$FILES" # For compatibility
+          echo "Updated Files: $FILES" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=Workflow Name::Updated Files: $FILES"
+          echo "::set-env name=WORKFLOW_NAME::Updated Files: $FILES"
+
+      - name: Rename workflow run
+        run: |
+          echo "Updating workflow run name to: Updated Files: ${{ steps.files.outputs.run_name }}"
+          gh run list
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   build:
     needs: set-run-name
