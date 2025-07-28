@@ -172,21 +172,7 @@ class DeleteConfirmView(discord.ui.View):
 
     @discord.ui.button(label="Confirm Delete", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from .utils import delete_guild_data
-        if self.guild_id and self.panel_name:
-            success = await delete_guild_data(self.guild_id, self.panel_name)
-            if success:
-                await interaction.response.edit_message(
-                    content="✅ Panel configuration has been deleted successfully!",
-                    view=None
-                )
-            else:
-                await interaction.response.edit_message(
-                    content="❌ Failed to delete panel configuration.",
-                    view=None
-                )
-        else:
-            await interaction.channel.delete()
+        await interaction.channel.delete()
 
 def setup(bot):
     async def panel_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -198,31 +184,64 @@ def setup(bot):
         ][:25]  # Discord limits autocomplete to 25 choices
 
     @bot.tree.command(
-        name="clan-apply-panel",
-        description="Create or update a clan application panel configuration"
+        name="ticket-panel",
+        description="Create, update, or delete a ticket panel configuration"
     )
     @app_commands.describe(
         name="Name of the panel",
+        delete="Delete the panel (true/false)",
         panel_embed="Discohook link for the panel embed",
         welcome_embed="Discohook link for the welcome embed (optional)",
         button_label="Custom label for the ticket button (optional)",
         button_color="Color of the ticket button (optional)"
     )
+    @app_commands.autocomplete(name=panel_autocomplete)
     @app_commands.choices(button_color=[
         app_commands.Choice(name="Blue", value="primary"),
         app_commands.Choice(name="Green", value="success"),
         app_commands.Choice(name="Red", value="danger"),
         app_commands.Choice(name="Gray", value="secondary")
     ])
-    async def clan_apply_panel_command(
+    async def ticket_panel_command(
         interaction: discord.Interaction,
         name: str,
-        panel_embed: str,
+        delete: bool = False,
+        panel_embed: str = None,
         welcome_embed: str = None,
         button_label: str = None,
         button_color: str = None
     ):
         await interaction.response.defer(ephemeral=True, thinking=True)
+
+        # Handle delete action
+        if delete:
+            panel_data = await get_guild_data(interaction.guild.id, name)
+            if not panel_data:
+                await interaction.followup.send(f"❌ No panel configuration found for '{name}'!", ephemeral=True)
+                return
+            
+            # Delete the panel
+            from .utils import delete_guild_data
+            await delete_guild_data(interaction.guild.id, name)
+            await interaction.followup.send(f"✅ Panel '{name}' has been deleted successfully!", ephemeral=True)
+            return
+
+        # Validate required fields for create/update
+        if not panel_embed:
+            await interaction.followup.send("❌ Panel embed is required when creating or updating a panel!", ephemeral=True)
+            return
+
+        # Check panel limit (max 3 panels per server)
+        existing_panels = await get_panel_names(interaction.guild.id)
+        panel_exists = name in existing_panels
+        if not panel_exists and len(existing_panels) >= 3:
+            await interaction.followup.send(
+                "❌ Maximum of 3 panels allowed per server!\n"
+                f"Current panels: {', '.join(existing_panels)}\n"
+                "Please delete an existing panel first or use an existing panel name to update it.",
+                ephemeral=True
+            )
+            return
 
         # Validate panel embed link
         panel_embed_data = await parse_discohook_link(panel_embed)
@@ -248,26 +267,27 @@ def setup(bot):
             button_color=button_color or "primary"
         )
 
+        action = "updated" if panel_exists else "created"
         await interaction.followup.send(
-            f"✅ Panel '{name}' configuration has been saved successfully!\n"
+            f"✅ Panel '{name}' configuration has been {action} successfully!\n"
             f"**Panel Embed:** ✅ Set\n"
             f"**Welcome Embed:** {'✅ Set' if welcome_embed_data else '❌ Default'}\n"
             f"**Button Label:** {button_label or '🎟️ Create Ticket'}\n"
             f"**Button Color:** {button_color.title() if button_color else 'Blue'}\n\n"
-            f"Use `/clan-apply-send` to send the panel to a channel.",
+            f"Use `/ticket-post` to send the panel to a channel.",
             ephemeral=True
         )
 
     @bot.tree.command(
-        name="clan-apply-send",
-        description="Send a clan application panel to a channel"
+        name="ticket-post",
+        description="Send a ticket panel to a channel"
     )
     @app_commands.describe(
         name="Name of the panel to send",
         channel="Channel to send the panel (defaults to current channel)"
     )
     @app_commands.autocomplete(name=panel_autocomplete)
-    async def clan_apply_send_command(
+    async def ticket_post_command(
         interaction: discord.Interaction,
         name: str,
         channel: discord.TextChannel = None
@@ -284,7 +304,7 @@ def setup(bot):
         staff_role = await get_staff_role(interaction.guild, name)
         if not staff_role:
             await interaction.followup.send(
-                "❌ Staff roles missing. Use `/clan-apply-config` to set a staff role.",
+                "❌ Staff roles missing. Use `/ticket-settings` to set a staff role.",
                 ephemeral=True
             )
             return
@@ -330,40 +350,11 @@ def setup(bot):
             ephemeral=True
         )
 
-    @bot.tree.command(
-        name="clan-apply-delete",
-        description="Delete a clan application panel configuration"
-    )
-    @app_commands.describe(name="Name of the panel to delete")
-    @app_commands.autocomplete(name=panel_autocomplete)
-    async def clan_apply_delete_command(interaction: discord.Interaction, name: str):
-        panel_data = await get_guild_data(interaction.guild.id, name)
-        if not panel_data:
-            await interaction.response.send_message(
-                f"❌ No panel configuration found for '{name}'!",
-                ephemeral=True
-            )
-            return
 
-        embed = discord.Embed(
-            title="⚠️ Delete Panel Configuration",
-            description=f"Are you sure you want to delete the panel '{name}'?\n\n"
-                        "This will remove all saved settings including:\n"
-                        "• Panel embed\n"
-                        "• Welcome embed\n"
-                        "• Button settings\n\n"
-                        "**This action cannot be undone!**",
-            color=discord.Color.red()
-        )
-        await interaction.response.send_message(
-            embed=embed,
-            view=DeleteConfirmView(interaction.guild.id, name),
-            ephemeral=True
-        )
 
     @bot.tree.command(
-        name="clan-apply-config",
-        description="Configure staff role and category for clan application tickets"
+        name="ticket-settings",
+        description="Configure staff role and category for ticket panels"
     )
     @app_commands.describe(
         name="Name of the panel to configure",
@@ -371,7 +362,7 @@ def setup(bot):
         category="Category for ticket channels (optional)"
     )
     @app_commands.autocomplete(name=panel_autocomplete)
-    async def clan_apply_config_command(
+    async def ticket_settings_command(
         interaction: discord.Interaction,
         name: str,
         staff_role: discord.Role = None,
@@ -405,7 +396,7 @@ def setup(bot):
                 updates.append(f"**Category:** {category.mention}")
             await interaction.followup.send(
                 f"✅ Configuration for panel '{name}' created successfully!\n" + "\n".join(updates) +
-                f"\n\nUse `/clan-apply-panel` to set up the panel embed and other settings.",
+                f"\n\nUse `/ticket-panel` to set up the panel embed and other settings.",
                 ephemeral=True
             )
             return
