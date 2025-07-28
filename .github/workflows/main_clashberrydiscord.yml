@@ -3,7 +3,7 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-run-name: "Deploy by ${{ github.actor }} at ${{ format('{0:yyyy-MM-dd HH:mm:ss}', github.event.repository.pushed_at || github.event.schedule || github.event.workflow_run.run_started_at || github.event.deployment.started_at) }} UTC"
+run-name: ${{ github.event.head_commit.modified[0] || 'No files updated' }}
 
 jobs:
   build:
@@ -13,6 +13,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # To get the previous commit for comparison
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          CHANGED_FILE=$(git diff --name-only HEAD^ HEAD | head -n 1 || echo 'No files updated')
+          echo "changed_file=$CHANGED_FILE" >> $GITHUB_ENV
+          echo "GITHUB_RUN_NAME=$CHANGED_FILE" >> $GITHUB_ENV
 
       - name: Set up Python version
         uses: actions/setup-python@v5
