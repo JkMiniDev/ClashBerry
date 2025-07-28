@@ -3,22 +3,22 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-# Show all updated files as workflow run name
-run-name: "Updated Files: ${{ needs.set-run-name.outputs.run_name }}"
+# Show last updated file name as workflow run name
+run-name: "Last Update: ${{ needs.set-run-name.outputs.run_name }}"
 
 jobs:
-  # Job to get all updated file names
+  # Job to get last updated file name
   set-run-name:
     runs-on: ubuntu-latest
     outputs:
       run_name: ${{ steps.get_files.outputs.run_name }}
     steps:
       - uses: actions/checkout@v4
-      - name: Get all updated file names
+      - name: Get last updated file name
         id: get_files
         run: |
-          FILES=$(git log -1 --name-only --pretty="" | tr '\n' ',' | sed 's/,$//')
-          echo "run_name=$FILES" >> $GITHUB_OUTPUT
+          FILE=$(git log -1 --name-only --pretty="" | head -n 1)
+          echo "run_name=$FILE" >> $GITHUB_OUTPUT
 
   build:
     needs: set-run-name
