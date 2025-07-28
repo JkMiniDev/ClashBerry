@@ -3,7 +3,7 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-run-name: "Updated ${{ github.event.commits[0].modified[0] || github.sha }}"
+run-name: "Updated: ${{ github.ref != '' && github.sha != '' && github.event.head_commit.modified[0] || github.event.commits[0].modified[0] }}"
 
 jobs:
   build:
@@ -13,15 +13,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
 
-      - name: Get last modified file
-        id: last-modified
+      - name: Get latest change
+        id: files
         run: |
-          LAST_MODIFIED=$(git log -1 --name-only --pretty=format: | head -n 1)
-          echo "modified_file=$LAST_MODIFIED" >> $GITHUB_OUTPUT
-          echo "GITHUB_RUN_NAME=Updated ${LAST_MODIFIED}" >> $GITHUB_ENV
+          git fetch --prune --unshallow
+          FILE=$(git diff-tree --no-commit-id --name-only -r HEAD | head -1)
+          echo "changed_file=${FILE}" >> $GITHUB_OUTPUT
+          echo "GITHUB_RUN_NAME=Updated: ${FILE}" >> $GITHUB_ENV
 
       - name: Set up Python version
         uses: actions/setup-python@v5
