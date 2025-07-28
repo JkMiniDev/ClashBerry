@@ -3,35 +3,10 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
+run-name: "Deploy by ${{ github.actor }} at ${{ format('{0:yyyy-MM-dd HH:mm:ss}', github.event.repository.pushed_at || github.event.schedule || github.event.workflow_run.run_started_at || github.event.deployment.started_at) }} UTC"
+
 jobs:
-  # Job to set the run name dynamically
-  set-run-name:
-    runs-on: ubuntu-latest
-    outputs:
-      run_name: ${{ steps.files.outputs.run_name }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Get all updated file names
-        id: files
-        run: |
-          FILES=$(git log -1 --name-only --pretty="" | paste -sd ", " -)
-          echo "run_name=$FILES" >> $GITHUB_OUTPUT
-          echo "Updated Files: $FILES"
-          echo "##[set-output name=run_name;]$FILES"
-          echo "::set-output name=run_name::$FILES" # For compatibility
-          echo "Updated Files: $FILES" >> $GITHUB_STEP_SUMMARY
-          echo "::notice title=Workflow Name::Updated Files: $FILES"
-          echo "::set-env name=WORKFLOW_NAME::Updated Files: $FILES"
-
-      - name: Rename workflow run
-        run: |
-          echo "Updating workflow run name to: Updated Files: ${{ steps.files.outputs.run_name }}"
-          gh run list
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   build:
-    needs: set-run-name
     runs-on: ubuntu-latest
     permissions:
       contents: read 
