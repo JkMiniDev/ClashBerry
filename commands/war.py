@@ -16,8 +16,13 @@ db = mongodb_client[MONGODB_DATABASE]
 script_dir = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
     TH_EMOJIS = json.load(f)
+with open(os.path.join(script_dir, 'emoji', 'numbers.json'), 'r') as f:
+    NUMBER_EMOJIS = json.load(f)
 def th_emoji(level):
     return TH_EMOJIS.get(str(level), "")
+
+def number_emoji(count):
+    return NUMBER_EMOJIS.get(str(count), str(count))
 
 def visual_width(text):
     """Calculate the visual width of text including unicode characters"""
@@ -387,7 +392,7 @@ def make_overview_embed(war_data, war_type):
             lvl = int(m.get("townhallLevel", 0))
             th_counts[lvl] = th_counts.get(lvl, 0) + 1
         sorted_ths = sorted(th_counts.items(), reverse=True)
-        return ' '.join(f"{TH_EMOJIS.get(str(th), '')} `{count}`" for th, count in sorted_ths)
+        return ' '.join(f"{TH_EMOJIS.get(str(th), '')} {number_emoji(count)}" for th, count in sorted_ths)
     desc.append(f"{clan.get('name', '?')}\n{th_breakdown(clan.get('members', []))}")
     desc.append(f"{opponent.get('name', '?')}\n{th_breakdown(opponent.get('members', []))}")
     embed.description = '\n\n'.join(desc)
