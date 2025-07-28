@@ -3,8 +3,6 @@ name: ClashBerry - Discord
 on:
   workflow_dispatch:
 
-run-name: "${{ github.event.head_commit.message || format('Manual Trigger - {0}', github.sha) }}"
-
 jobs:
   build:
     runs-on: ubuntu-latest
