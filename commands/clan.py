@@ -21,9 +21,6 @@ with open(os.path.join(script_dir, 'emoji', 'league.json'), 'r') as f:
 with open(os.path.join(script_dir, 'emoji', 'numbers.json'), 'r') as f:
     NUMBER_EMOJIS = json.load(f)
 
-def number_emoji(count):
-    return NUMBER_EMOJIS.get(str(count), str(count))
-
 WAR_LOG_EMOJIS = {
     "public": "<:Pad_Unlock:1390947990994419733>",   # Use your custom emoji if preferred
     "private": "<:Pad_Lock:1390947967443275846>",  # Use your custom emoji if preferred
@@ -149,7 +146,8 @@ def setup(bot):
         th_stats = []
         for th in sorted(th_counts.keys(), reverse=True):
             emoji = TH_EMOJIS.get(str(th), f"TH{th}")
-            th_stats.append(f"{emoji} {number_emoji(th_counts[th])}")
+            count_emoji = NUMBER_EMOJIS.get(str(th_counts[th]), f"{th_counts[th]}"
+            th_stats.append(f"{emoji} {count_emoji}")
         th_stats_str = " ".join(th_stats) if th_stats else "N/A"
 
         # ========== EMBED ==========
