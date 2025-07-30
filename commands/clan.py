@@ -33,7 +33,7 @@ CLAN_TYPE_MAP = {
 # ---------- Environment Variables ----------
 COC_API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -66,11 +66,11 @@ async def get_linked_clans(guild_id):
 
 # ---------- Autocomplete ----------
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         data = await get_linked_clans(str(interaction.guild.id))
         clans = data.get("clans", [])
         return [
-            disnake.app_commands.Choice(
+            disnake.disnake.OptionChoice(
                 name=f"{clan['name']} ({clan['tag']})",
                 value=clan['tag']
             )
@@ -78,10 +78,11 @@ def setup(bot):
             if current.lower() in clan['tag'].lower() or current.lower() in clan['name'].lower()
         ][:25]
 
-    @bot.tree.command(name="clan", description="Get clan information.")
-    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def clan_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="clan", description="Get clan information.")
+    async def clan_command(
+        interaction: disnake.ApplicationCommandInteraction, 
+        tag: str
+    ):
         await interaction.response.defer()
         clan_data = await get_coc_clan(tag)
         if not clan_data:

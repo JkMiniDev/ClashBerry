@@ -7,7 +7,7 @@ import json
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -77,11 +77,11 @@ async def get_linked_players(discord_id):
         return {"discord_id": discord_id, "unverified": [], "verified": []}
 
 def setup(bot):
-    @bot.tree.command(name="accounts", description="Show a user's linked accounts.")
-    @disnake.app_commands.describe(
-        user="Show linked accounts for a specific Discord user (optional)"
-    )
-    async def accounts_command(interaction: disnake.Interaction, user: disnake.User = None):
+    @bot.slash_command(name="accounts", description="Show a user's linked accounts.")
+    async def accounts_command(
+        interaction: disnake.ApplicationCommandInteraction, 
+        user: disnake.User = None
+    ):
         await interaction.response.defer()
 
         # Determine target user

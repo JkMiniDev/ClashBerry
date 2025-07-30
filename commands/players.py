@@ -7,7 +7,7 @@ import json  # Added for max_lvl.json and emoji loading
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -383,7 +383,7 @@ class ViewSelector(disnake.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction: disnake.Interaction):
+    async def callback(self, interaction: disnake.ApplicationCommandInteraction):
         if self.values[0] == "Profile Overview":
             embed = PlayerEmbeds.player_info(self.player_data)
         else:
@@ -418,7 +418,7 @@ class ProfileButtonView(disnake.ui.View):
                 style=disnake.ButtonStyle.link
             ))
 
-    async def refresh_btn_callback(self, interaction: disnake.Interaction):
+    async def refresh_btn_callback(self, interaction: disnake.ApplicationCommandInteraction):
         await interaction.response.defer()
         fresh_data = await get_coc_player(self.player_tag)
         if not fresh_data:
@@ -521,10 +521,10 @@ async def get_linked_players(discord_id):
         return []
 
 def setup(bot):
-    async def player_tag_autocomplete(interaction: disnake.Interaction, current: str):
+    async def player_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         accounts = await get_linked_players(str(interaction.user.id))
         return [
-            disnake.app_commands.Choice(
+            disnake.disnake.OptionChoice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -532,10 +532,11 @@ def setup(bot):
             if current.lower() in acc['tag'].lower() or current.lower() in acc['name'].lower()
         ][:25]
 
-    @bot.tree.command(name="player", description="Get player information")
-    @disnake.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
-    @disnake.app_commands.autocomplete(tag=player_tag_autocomplete)
-    async def player_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="player", description="Get player information")
+    async def player_command(
+        interaction: disnake.ApplicationCommandInteraction, 
+        tag: str
+    ):
         await interaction.response.defer()
         player_data = await get_coc_player(tag)
         if not player_data:

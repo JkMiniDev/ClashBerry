@@ -13,7 +13,7 @@ class TicketButton(disnake.ui.Button):
         super().__init__(label=label, style=style, custom_id=f"apply_now_{panel_name}")
         self.panel_name = panel_name
 
-    async def callback(self, interaction: disnake.Interaction):
+    async def callback(self, interaction: disnake.ApplicationCommandInteraction):
         normalized_username = interaction.user.name.lower().replace('.', '')
         channel_name = f"ticket-{normalized_username}"
         found_channel = None
@@ -33,22 +33,23 @@ class TicketButton(disnake.ui.Button):
         staff_role_id = staff_role.id if staff_role else None
         await interaction.response.send_modal(TagModal(staff_role_id, normalized_username, self.panel_name))
 
-class TagModal(disnake.ui.Modal, title="Enter In-game Tag"):
+class TagModal(disnake.ui.Modal):
     tag = disnake.ui.TextInput(
         label="Player Tag",
         placeholder="e.g. #2Q82LRL",
         required=True,
         min_length=5,
-        max_length=15
+        max_length=15,
+        custom_id="player_tag"
     )
 
     def __init__(self, staff_role_id, username, panel_name):
-        super().__init__()
+        super().__init__(title="Enter In-game Tag")
         self.staff_role_id = staff_role_id
         self.username = username
         self.panel_name = panel_name
 
-    async def on_submit(self, interaction: disnake.Interaction):
+    async def on_submit(self, interaction: disnake.ApplicationCommandInteraction):
         from .utils import get_coc_player
         player_tag = self.tag.value.replace(" ", "").upper().replace("O", "0")
         if not player_tag.startswith("#"):
@@ -137,14 +138,14 @@ class TicketActionsView(disnake.ui.View):
         self.player_data = player_data
 
     @disnake.ui.button(label="Player Account", style=disnake.ButtonStyle.primary, custom_id="profile_button")
-    async def profile(self, interaction: disnake.Interaction, button: disnake.ui.Button):
+    async def profile(self, interaction: disnake.ApplicationCommandInteraction, button: disnake.ui.Button):
         if interaction.user.name.lower() != self.username:
             await interaction.response.send_message("Only the ticket creator can view the profile.", ephemeral=True)
             return
         await show_profile(interaction, self.player_data)
 
     @disnake.ui.button(label="Delete Ticket", style=disnake.ButtonStyle.danger, custom_id="delete_ticket")
-    async def delete_ticket(self, interaction: disnake.Interaction, button: disnake.ui.Button):
+    async def delete_ticket(self, interaction: disnake.ApplicationCommandInteraction, button: disnake.ui.Button):
         staff_role = await get_staff_role(interaction.guild)
         if not staff_role:
             await interaction.response.send_message("Staff role is not set up. Please run the /clan-apply-config command.", ephemeral=True)
@@ -171,39 +172,24 @@ class DeleteConfirmView(disnake.ui.View):
         self.panel_name = panel_name
 
     @disnake.ui.button(label="Confirm Delete", style=disnake.ButtonStyle.danger)
-    async def confirm(self, interaction: disnake.Interaction, button: disnake.ui.Button):
+    async def confirm(self, interaction: disnake.ApplicationCommandInteraction, button: disnake.ui.Button):
         await interaction.channel.delete()
 
 def setup(bot):
-    async def panel_autocomplete(interaction: disnake.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def panel_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str) -> list[disnake.OptionChoice]:
         panel_names = await get_panel_names(interaction.guild.id)
         return [
-            app_commands.Choice(name=name, value=name)
+            disnake.OptionChoice(name=name, value=name)
             for name in panel_names
             if current.lower() in name.lower()
         ][:25]  # Discord limits autocomplete to 25 choices
 
-    @bot.tree.command(
+    @bot.slash_command(
         name="ticket-panel",
         description="Create, update, or delete a ticket panel configuration"
     )
-    @app_commands.describe(
-        name="Name of the panel",
-        delete="Delete the panel (true/false)",
-        panel_embed="Discohook link for the panel embed",
-        welcome_embed="Discohook link for the welcome embed (optional)",
-        button_label="Custom label for the ticket button (optional)",
-        button_color="Color of the ticket button (optional)"
-    )
-    @app_commands.autocomplete(name=panel_autocomplete)
-    @app_commands.choices(button_color=[
-        app_commands.Choice(name="Blue", value="primary"),
-        app_commands.Choice(name="Green", value="success"),
-        app_commands.Choice(name="Red", value="danger"),
-        app_commands.Choice(name="Gray", value="secondary")
-    ])
     async def ticket_panel_command(
-        interaction: disnake.Interaction,
+        interaction: disnake.ApplicationCommandInteraction,
         name: str,
         delete: bool = False,
         panel_embed: str = None,
@@ -278,17 +264,12 @@ def setup(bot):
             ephemeral=True
         )
 
-    @bot.tree.command(
+    @bot.slash_command(
         name="ticket-post",
         description="Send a ticket panel to a channel"
     )
-    @app_commands.describe(
-        name="Name of the panel to send",
-        channel="Channel to send the panel (defaults to current channel)"
-    )
-    @app_commands.autocomplete(name=panel_autocomplete)
     async def ticket_post_command(
-        interaction: disnake.Interaction,
+        interaction: disnake.ApplicationCommandInteraction,
         name: str,
         channel: disnake.TextChannel = None
     ):
@@ -352,18 +333,12 @@ def setup(bot):
 
 
 
-    @bot.tree.command(
+    @bot.slash_command(
         name="ticket-settings",
         description="Configure staff role and category for ticket panels"
     )
-    @app_commands.describe(
-        name="Name of the panel to configure",
-        staff_role="Select role for staff (optional)",
-        category="Category for ticket channels (optional)"
-    )
-    @app_commands.autocomplete(name=panel_autocomplete)
     async def ticket_settings_command(
-        interaction: disnake.Interaction,
+        interaction: disnake.ApplicationCommandInteraction,
         name: str,
         staff_role: disnake.Role = None,
         category: disnake.CategoryChannel = None

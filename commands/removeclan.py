@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -41,7 +41,7 @@ async def save_linked_clans(data):
         print(f"MongoDB save_linked_clans error: {e}")  # Debug log
 
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         # Admin check for autocomplete
         if not interaction.user.guild_permissions.administrator:
             return []
@@ -55,7 +55,7 @@ def setup(bot):
             clan_name = clan_data.get("name", clan['tag']) if clan_data else clan['tag']
             options.append({"name": clan_name, "tag": clan['tag']})
         return [
-            disnake.app_commands.Choice(
+            disnake.disnake.OptionChoice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -63,10 +63,8 @@ def setup(bot):
             if current.lower() in acc['tag'].lower() or current.lower() in acc['name'].lower()
         ][:25]
 
-    @bot.tree.command(name="removeclan", description="Remove a clan linked to this server.")
-    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def removeclan_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="removeclan", description="Remove a clan linked to this server.")
+    async def removeclan_command(interaction: disnake.ApplicationCommandInteraction, tag: str):
         # Admin check
         if not interaction.user.guild_permissions.administrator:
             embed = disnake.Embed(

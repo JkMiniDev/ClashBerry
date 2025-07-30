@@ -8,7 +8,7 @@ import unicodedata
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
 db = mongodb_client[MONGODB_DATABASE]
 
@@ -479,7 +479,7 @@ class WarDropdown(disnake.ui.Select):
         self.war_data = war_data
         self.war_type = war_type
 
-    async def callback(self, interaction: disnake.Interaction):
+    async def callback(self, interaction: disnake.ApplicationCommandInteraction):
         value = self.values[0]
         if value == "overview":
             embed = make_overview_embed(self.war_data, self.war_type)
@@ -502,11 +502,11 @@ class WarView(disnake.ui.View):
         self.add_item(WarDropdown(war_data, war_type, current))
 
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         data = await get_linked_clans(str(interaction.guild.id))
         clans = data.get("clans", [])
         return [
-            disnake.app_commands.Choice(
+            disnake.disnake.OptionChoice(
                 name=f"{clan['name']} ({clan['tag']})",
                 value=clan['tag']
             )
@@ -514,10 +514,8 @@ def setup(bot):
             if current.lower() in clan['tag'].lower() or current.lower() in clan['name'].lower()
         ][:25]
 
-    @bot.tree.command(name="war", description="Show current war information for a clan.")
-    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def war_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="war", description="Show current war information for a clan.")
+    async def war_command(interaction: disnake.ApplicationCommandInteraction, tag: str):
         await interaction.response.defer()
         
         # Normalize clan tag

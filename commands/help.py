@@ -2,8 +2,8 @@ import disnake
 import os
 
 def setup(bot):
-    @bot.tree.command(name="help", description="Get bot command details")
-    async def help_command(interaction: disnake.Interaction):
+    @bot.slash_command(name="help", description="Get bot command details")
+    async def help_command(interaction: disnake.ApplicationCommandInteraction):
         embed = disnake.Embed(
             description=(
                 "## ClashBerry Commands\n\n"

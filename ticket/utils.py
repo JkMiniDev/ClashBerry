@@ -11,7 +11,7 @@ load_dotenv()
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client only if database name is set
 if MONGODB_DATABASE:

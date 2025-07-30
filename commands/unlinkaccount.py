@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -41,11 +41,11 @@ async def save_linked_players(data):
         print(f"MongoDB save_linked_players error: {e}")
 
 def setup(bot):
-    async def player_tag_autocomplete(interaction: disnake.Interaction, current: str):
+    async def player_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         user_data = await get_linked_players(str(interaction.user.id))
         accounts = user_data.get("verified", []) + user_data.get("unverified", [])
         return [
-            disnake.app_commands.Choice(
+            disnake.disnake.OptionChoice(
                 name=f"{acc.get('name', acc.get('tag', 'Unknown'))} ({acc.get('tag', 'Unknown')})",
                 value=acc.get('tag', '')
             )
@@ -53,10 +53,8 @@ def setup(bot):
             if current.lower() in acc.get('tag', '').lower() or current.lower() in acc.get('name', '').lower()
         ][:25]
 
-    @bot.tree.command(name="unlinkaccount", description="Unlink one of your account.")
-    @disnake.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
-    @disnake.app_commands.autocomplete(tag=player_tag_autocomplete)
-    async def unlinkaccount_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="unlinkaccount", description="Unlink one of your account.")
+    async def unlinkaccount_command(interaction: disnake.ApplicationCommandInteraction, tag: str):
         await interaction.response.defer()
 
         # Normalize and clean the tag

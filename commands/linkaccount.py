@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database" or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -102,13 +102,13 @@ async def remove_tag_from_other_users(player_tag, current_discord_id):
         print(f"MongoDB remove_tag_from_other_users error: {e}")  # Debug log
 
 def setup(bot):
-    @bot.tree.command(name="linkaccount", description="Link a account to a Discord user.")
-    @disnake.app_commands.describe(
-        tag="Player tag (e.g. #2Q82LRL)",
-        user="Link tag to a Discord user (optional)",
-        api_token="API Token from in-game setting (optional)"
-    )
-    async def linkaccount_command(interaction: disnake.Interaction, tag: str, user: disnake.User = None, api_token: str = None):
+    @bot.slash_command(name="linkaccount", description="Link a account to a Discord user.")
+    async def linkaccount_command(
+        interaction: disnake.ApplicationCommandInteraction, 
+        tag: str,
+        user: disnake.User = None,
+        api_token: str = None
+    ):
         await interaction.response.defer()
 
         # Normalize player tag

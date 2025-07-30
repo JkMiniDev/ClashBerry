@@ -44,7 +44,6 @@ for dir_name in command_dirs:
 async def on_ready():
     from ticket.ticket import TicketPanelView
     bot.add_view(TicketPanelView())
-    await bot.tree.sync()
     print(f"Bot ready as {bot.user}")
 
 if __name__ == "__main__":

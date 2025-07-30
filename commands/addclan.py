@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # Environment variables
 COC_API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
 # Initialize MongoDB client
 mongodb_client = AsyncIOMotorClient(MONGODB_URI)
@@ -40,9 +40,8 @@ async def save_linked_clans(data):
         print(f"MongoDB save_linked_clans error: {e}")
 
 def setup(bot):
-    @bot.tree.command(name="addclan", description="Link a clan to this server.")
-    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    async def addclan_command(interaction: disnake.Interaction, tag: str):
+    @bot.slash_command(name="addclan", description="Link a clan to this server.")
+    async def addclan_command(interaction: disnake.ApplicationCommandInteraction, tag: str):
         # Admin check
         if not interaction.user.guild_permissions.administrator:
             embed = disnake.Embed(
