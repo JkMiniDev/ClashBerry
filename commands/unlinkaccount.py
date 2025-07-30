@@ -1,4 +1,4 @@
-import discord
+import disnake
 import os
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -41,11 +41,11 @@ async def save_linked_players(data):
         print(f"MongoDB save_linked_players error: {e}")
 
 def setup(bot):
-    async def player_tag_autocomplete(interaction: discord.Interaction, current: str):
+    async def player_tag_autocomplete(interaction: disnake.Interaction, current: str):
         user_data = await get_linked_players(str(interaction.user.id))
         accounts = user_data.get("verified", []) + user_data.get("unverified", [])
         return [
-            discord.app_commands.Choice(
+            disnake.app_commands.Choice(
                 name=f"{acc.get('name', acc.get('tag', 'Unknown'))} ({acc.get('tag', 'Unknown')})",
                 value=acc.get('tag', '')
             )
@@ -54,9 +54,9 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="unlinkaccount", description="Unlink one of your account.")
-    @discord.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=player_tag_autocomplete)
-    async def unlinkaccount_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
+    @disnake.app_commands.autocomplete(tag=player_tag_autocomplete)
+    async def unlinkaccount_command(interaction: disnake.Interaction, tag: str):
         await interaction.response.defer()
 
         # Normalize and clean the tag
@@ -71,7 +71,7 @@ def setup(bot):
         unverified_tags = [acc.get("tag") for acc in user_data.get("unverified", [])]
         
         if player_tag not in verified_tags and player_tag not in unverified_tags:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Unlink Error",
                 description=f"**{player_tag}** is not linked to your Discord.",
                 color=0xcccccc
@@ -86,7 +86,7 @@ def setup(bot):
         await save_linked_players(user_data)
 
         # Success response
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Unlink Success",
             description=f"Successfully unlinked **{player_tag}** from your account.",
             color=0xcccccc

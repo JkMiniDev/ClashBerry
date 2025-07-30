@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import json
@@ -78,10 +78,10 @@ async def get_linked_players(discord_id):
 
 def setup(bot):
     @bot.tree.command(name="accounts", description="Show a user's linked accounts.")
-    @discord.app_commands.describe(
+    @disnake.app_commands.describe(
         user="Show linked accounts for a specific Discord user (optional)"
     )
-    async def accounts_command(interaction: discord.Interaction, user: discord.User = None):
+    async def accounts_command(interaction: disnake.Interaction, user: disnake.User = None):
         await interaction.response.defer()
 
         # Determine target user
@@ -92,7 +92,7 @@ def setup(bot):
         user_data = await get_linked_players(target_user_id)
 
         # Initialize embed
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Linked Accounts",
             description=f"List of accounts {target_user.mention} has linked.",
             color=0xcccccc

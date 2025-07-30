@@ -1,4 +1,4 @@
-import discord
+import disnake
 import os
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -41,7 +41,7 @@ async def save_linked_clans(data):
         print(f"MongoDB save_linked_clans error: {e}")  # Debug log
 
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: discord.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
         # Admin check for autocomplete
         if not interaction.user.guild_permissions.administrator:
             return []
@@ -55,7 +55,7 @@ def setup(bot):
             clan_name = clan_data.get("name", clan['tag']) if clan_data else clan['tag']
             options.append({"name": clan_name, "tag": clan['tag']})
         return [
-            discord.app_commands.Choice(
+            disnake.app_commands.Choice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -64,12 +64,12 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="removeclan", description="Remove a clan linked to this server.")
-    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def removeclan_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
+    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
+    async def removeclan_command(interaction: disnake.Interaction, tag: str):
         # Admin check
         if not interaction.user.guild_permissions.administrator:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Remove Error",
                 description="You don't have permission to remove clan in the server.",
                 color=0xcccccc
@@ -88,7 +88,7 @@ def setup(bot):
         data = await get_linked_clans(guild_id)
         clans = data.get("clans", [])
         if not any(clan['tag'].upper() == clan_tag for clan in clans):
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Remove Error",
                 description="Provided clan is not linked to this server",
                 color=0xcccccc
@@ -106,7 +106,7 @@ def setup(bot):
         await save_linked_clans(data)
 
         # Success response
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Remove Success",
             description=f"**{clan_name} ({clan_tag})** successfully removed from this server.",
             color=0xcccccc

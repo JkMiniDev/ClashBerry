@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import datetime
@@ -150,7 +150,7 @@ def _star_string(stars: int):
     else:
         return "☆☆☆"
 
-EMBED_COLOR = discord.Color(int("0xcccccc", 16))
+EMBED_COLOR = disnake.Color(int("0xcccccc", 16))
 
 def make_attacks_embed(war_data, war_type):
     clan = war_data.get("clan", {})
@@ -213,7 +213,7 @@ def make_attacks_embed(war_data, war_type):
             lines.append("**Missed Attacks 0/0**")
             lines.append("No missed attacks!")
 
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description='\n'.join([header] + lines[:100]),  # Increased limit to accommodate additional sections
         color=EMBED_COLOR
     )
@@ -254,7 +254,7 @@ def make_defences_embed(war_data, war_type):
         lines.append(f"{d['th']} `{padded_name} {d['stars']}{format_percentage(d['percent'])}`")
     if not lines:
         lines.append("No defences recorded yet.")
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description='\n'.join([header] + lines[:45]),
         color=EMBED_COLOR
     )
@@ -274,7 +274,7 @@ def make_clan_roster_embed(war_data, war_type):
         lines.append(f"{th_icon} `{padded_name}        {m['tag']} `")
     if not lines:
         lines.append("No members listed.")
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description='\n'.join([header] + lines),
         color=EMBED_COLOR
     )
@@ -294,7 +294,7 @@ def make_opponent_roster_embed(war_data, war_type):
         lines.append(f"{th_icon} `{padded_name}        {m['tag']} `")
     if not lines:
         lines.append("No members listed.")
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description='\n'.join([header] + lines),
         color=EMBED_COLOR
     )
@@ -316,7 +316,7 @@ def make_overview_embed(war_data, war_type):
         tag_clean = clan_tag[1:]
         title_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
     
-    embed = discord.Embed(
+    embed = disnake.Embed(
         title=f"{clan_name} ({clan_tag})",
         url=title_url,
         color=EMBED_COLOR
@@ -396,7 +396,7 @@ def make_overview_embed(war_data, war_type):
     return embed
 
 async def make_private_war_log_embed(clan_tag):
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description="Private War Log",
         color=EMBED_COLOR
     )
@@ -415,7 +415,7 @@ async def make_private_war_log_embed(clan_tag):
     return embed
 
 async def make_not_in_war_embed(clan_tag):
-    embed = discord.Embed(
+    embed = disnake.Embed(
         description="Not in war",
         color=EMBED_COLOR
     )
@@ -433,10 +433,10 @@ async def make_not_in_war_embed(clan_tag):
 
     return embed
 
-class WarDropdown(discord.ui.Select):
+class WarDropdown(disnake.ui.Select):
     def __init__(self, war_data, war_type, current):
         options = [
-            discord.SelectOption(
+            disnake.SelectOption(
                 label="Overview",
                 description="Show war summary",
                 value="overview",
@@ -446,14 +446,14 @@ class WarDropdown(discord.ui.Select):
         ]
         war_state = war_data.get("state")
         if war_state == "preparation":
-            options.append(discord.SelectOption(
+            options.append(disnake.SelectOption(
                 label="Clan Roster",
                 description="List members",
                 value="clan_roster",
                 emoji="<:People:1390950050196226129>",
                 default=(current=="clan_roster")
             ))
-            options.append(discord.SelectOption(
+            options.append(disnake.SelectOption(
                 label="Opponent Roster",
                 description="List opponent members",
                 value="opponent_roster",
@@ -461,14 +461,14 @@ class WarDropdown(discord.ui.Select):
                 default=(current=="opponent_roster")
             ))
         else:
-            options.append(discord.SelectOption(
+            options.append(disnake.SelectOption(
                 label="Attacks",
                 description="Show attacks",
                 value="attacks",
                 emoji="<:Sword:1390659453321351289>",
                 default=(current=="attacks")
             ))
-            options.append(discord.SelectOption(
+            options.append(disnake.SelectOption(
                 label="Defence",
                 description="Show defences",
                 value="defence",
@@ -479,7 +479,7 @@ class WarDropdown(discord.ui.Select):
         self.war_data = war_data
         self.war_type = war_type
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: disnake.Interaction):
         value = self.values[0]
         if value == "overview":
             embed = make_overview_embed(self.war_data, self.war_type)
@@ -492,21 +492,21 @@ class WarDropdown(discord.ui.Select):
         elif value == "opponent_roster":
             embed = make_opponent_roster_embed(self.war_data, self.war_type)
         else:
-            embed = discord.Embed(title="Invalid selection.")
+            embed = disnake.Embed(title="Invalid selection.")
         view = WarView(self.war_data, self.war_type, current=value)
         await interaction.response.edit_message(embed=embed, view=view)
 
-class WarView(discord.ui.View):
+class WarView(disnake.ui.View):
     def __init__(self, war_data, war_type, current="overview"):
         super().__init__(timeout=300)
         self.add_item(WarDropdown(war_data, war_type, current))
 
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: discord.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
         data = await get_linked_clans(str(interaction.guild.id))
         clans = data.get("clans", [])
         return [
-            discord.app_commands.Choice(
+            disnake.app_commands.Choice(
                 name=f"{clan['name']} ({clan['tag']})",
                 value=clan['tag']
             )
@@ -515,9 +515,9 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="war", description="Show current war information for a clan.")
-    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def war_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
+    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
+    async def war_command(interaction: disnake.Interaction, tag: str):
         await interaction.response.defer()
         
         # Normalize clan tag

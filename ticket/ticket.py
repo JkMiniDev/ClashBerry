@@ -1,19 +1,19 @@
-import discord
-from discord import app_commands
+import disnake
+from disnake import app_commands
 from .utils import get_guild_data, save_guild_data, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile, parse_discohook_link, get_panel_names
 
-class TicketPanelView(discord.ui.View):
-    def __init__(self, button_label="🎟️ Create Ticket", button_color=discord.ButtonStyle.primary, panel_name=None):
+class TicketPanelView(disnake.ui.View):
+    def __init__(self, button_label="🎟️ Create Ticket", button_color=disnake.ButtonStyle.primary, panel_name=None):
         super().__init__(timeout=None)
         self.panel_name = panel_name
         self.add_item(TicketButton(button_label, button_color, panel_name))
 
-class TicketButton(discord.ui.Button):
+class TicketButton(disnake.ui.Button):
     def __init__(self, label, style, panel_name):
         super().__init__(label=label, style=style, custom_id=f"apply_now_{panel_name}")
         self.panel_name = panel_name
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: disnake.Interaction):
         normalized_username = interaction.user.name.lower().replace('.', '')
         channel_name = f"ticket-{normalized_username}"
         found_channel = None
@@ -22,9 +22,9 @@ class TicketButton(discord.ui.Button):
                 found_channel = channel
                 break
         if found_channel:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"You have already opened a ticket: {found_channel.mention}",
-                color=discord.Color.red()
+                color=disnake.Color.red()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
@@ -33,8 +33,8 @@ class TicketButton(discord.ui.Button):
         staff_role_id = staff_role.id if staff_role else None
         await interaction.response.send_modal(TagModal(staff_role_id, normalized_username, self.panel_name))
 
-class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
-    tag = discord.ui.TextInput(
+class TagModal(disnake.ui.Modal, title="Enter In-game Tag"):
+    tag = disnake.ui.TextInput(
         label="Player Tag",
         placeholder="e.g. #2Q82LRL",
         required=True,
@@ -48,7 +48,7 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
         self.username = username
         self.panel_name = panel_name
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: disnake.Interaction):
         from .utils import get_coc_player
         player_tag = self.tag.value.replace(" ", "").upper().replace("O", "0")
         if not player_tag.startswith("#"):
@@ -75,9 +75,9 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
             return
 
         if found_channel:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 description=f"You already have a ticket: {found_channel.mention}",
-                color=discord.Color.red()
+                color=disnake.Color.red()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
@@ -86,9 +86,9 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
         category = guild.get_channel(category_id) if category_id else None
 
         overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-            staff_role: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True)
+            guild.default_role: disnake.PermissionOverwrite(view_channel=False),
+            user: disnake.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            staff_role: disnake.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True)
         }
 
         ticket_channel = await guild.create_text_channel(
@@ -100,16 +100,16 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
 
         welcome_embed_data = await get_welcome_embed_data(guild.id, self.panel_name)
         if welcome_embed_data and welcome_embed_data.get("embeds"):
-            welcome_embeds = [discord.Embed.from_dict(e) for e in welcome_embed_data["embeds"]]
+            welcome_embeds = [disnake.Embed.from_dict(e) for e in welcome_embed_data["embeds"]]
             welcome_content = welcome_embed_data.get("content")
         else:
-            welcome_embeds = [discord.Embed(
+            welcome_embeds = [disnake.Embed(
                 title="Clan Application",
                 description=(
                     f"Welcome to the clan application.\n\n"
                     f"Your ticket will be handled shortly."
                 ),
-                color=discord.Color.green()
+                color=disnake.Color.green()
             )]
             welcome_content = None
 
@@ -122,29 +122,29 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
         )
         await ticket_message.pin()
 
-        confirm_embed = discord.Embed(
+        confirm_embed = disnake.Embed(
             title="✅ Ticket Created",
             description=f"Your ticket has been created: {ticket_channel.mention}",
-            color=discord.Color.green()
+            color=disnake.Color.green()
         )
         await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
-class TicketActionsView(discord.ui.View):
+class TicketActionsView(disnake.ui.View):
     def __init__(self, username, staff_role_id, player_data):
         super().__init__(timeout=None)
         self.username = username
         self.staff_role_id = staff_role_id
         self.player_data = player_data
 
-    @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button")
-    async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @disnake.ui.button(label="Player Account", style=disnake.ButtonStyle.primary, custom_id="profile_button")
+    async def profile(self, interaction: disnake.Interaction, button: disnake.ui.Button):
         if interaction.user.name.lower() != self.username:
             await interaction.response.send_message("Only the ticket creator can view the profile.", ephemeral=True)
             return
         await show_profile(interaction, self.player_data)
 
-    @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket")
-    async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @disnake.ui.button(label="Delete Ticket", style=disnake.ButtonStyle.danger, custom_id="delete_ticket")
+    async def delete_ticket(self, interaction: disnake.Interaction, button: disnake.ui.Button):
         staff_role = await get_staff_role(interaction.guild)
         if not staff_role:
             await interaction.response.send_message("Staff role is not set up. Please run the /clan-apply-config command.", ephemeral=True)
@@ -153,10 +153,10 @@ class TicketActionsView(discord.ui.View):
             await interaction.response.send_message("Please ask staff to delete this ticket.", ephemeral=True)
             return
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Delete Confirmation",
             description="Are you sure you want to delete this ticket?",
-            color=discord.Color.red()
+            color=disnake.Color.red()
         )
         await interaction.response.send_message(
             embed=embed,
@@ -164,18 +164,18 @@ class TicketActionsView(discord.ui.View):
             ephemeral=True
         )
 
-class DeleteConfirmView(discord.ui.View):
+class DeleteConfirmView(disnake.ui.View):
     def __init__(self, guild_id=None, panel_name=None):
         super().__init__(timeout=None)
         self.guild_id = guild_id
         self.panel_name = panel_name
 
-    @discord.ui.button(label="Confirm Delete", style=discord.ButtonStyle.danger)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @disnake.ui.button(label="Confirm Delete", style=disnake.ButtonStyle.danger)
+    async def confirm(self, interaction: disnake.Interaction, button: disnake.ui.Button):
         await interaction.channel.delete()
 
 def setup(bot):
-    async def panel_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def panel_autocomplete(interaction: disnake.Interaction, current: str) -> list[app_commands.Choice[str]]:
         panel_names = await get_panel_names(interaction.guild.id)
         return [
             app_commands.Choice(name=name, value=name)
@@ -203,7 +203,7 @@ def setup(bot):
         app_commands.Choice(name="Gray", value="secondary")
     ])
     async def ticket_panel_command(
-        interaction: discord.Interaction,
+        interaction: disnake.Interaction,
         name: str,
         delete: bool = False,
         panel_embed: str = None,
@@ -288,9 +288,9 @@ def setup(bot):
     )
     @app_commands.autocomplete(name=panel_autocomplete)
     async def ticket_post_command(
-        interaction: discord.Interaction,
+        interaction: disnake.Interaction,
         name: str,
-        channel: discord.TextChannel = None
+        channel: disnake.TextChannel = None
     ):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
@@ -317,16 +317,16 @@ def setup(bot):
 
         # Get button data
         button_label, button_color = await get_button_data(interaction.guild.id, name)
-        button_style = discord.ButtonStyle.primary
+        button_style = disnake.ButtonStyle.primary
         if button_color == "success":
-            button_style = discord.ButtonStyle.success
+            button_style = disnake.ButtonStyle.success
         elif button_color == "danger":
-            button_style = discord.ButtonStyle.danger
+            button_style = disnake.ButtonStyle.danger
         elif button_color == "secondary":
-            button_style = discord.ButtonStyle.secondary
+            button_style = disnake.ButtonStyle.secondary
 
         # Create panel embed
-        panel_embeds = [discord.Embed.from_dict(e) for e in panel_embed_data.get("embeds", [])]
+        panel_embeds = [disnake.Embed.from_dict(e) for e in panel_embed_data.get("embeds", [])]
         panel_content = panel_embed_data.get("content")
 
         # Send panel to channel (default to interaction channel if not specified)
@@ -363,10 +363,10 @@ def setup(bot):
     )
     @app_commands.autocomplete(name=panel_autocomplete)
     async def ticket_settings_command(
-        interaction: discord.Interaction,
+        interaction: disnake.Interaction,
         name: str,
-        staff_role: discord.Role = None,
-        category: discord.CategoryChannel = None
+        staff_role: disnake.Role = None,
+        category: disnake.CategoryChannel = None
     ):
         await interaction.response.defer(ephemeral=True, thinking=True)
 

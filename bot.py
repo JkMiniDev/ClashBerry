@@ -1,26 +1,26 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 import importlib.util
 import pathlib
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-intents = discord.Intents.default()
+intents = disnake.Intents.default()
 intents.guilds = True
 intents.members = True
 
 bot = commands.Bot(
     command_prefix="!",
     intents=intents,
-    activity=discord.Activity(
-        type=discord.ActivityType.custom,
+    activity=disnake.Activity(
+        type=disnake.ActivityType.custom,
         name="🔍 Scouting Bases",
         state="🔍 Scouting Bases"
     ),
-    status=discord.Status.online
+    status=disnake.Status.online
 )
 
 # List all directories you want to load commands from

@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -103,12 +103,12 @@ async def remove_tag_from_other_users(player_tag, current_discord_id):
 
 def setup(bot):
     @bot.tree.command(name="linkaccount", description="Link a account to a Discord user.")
-    @discord.app_commands.describe(
+    @disnake.app_commands.describe(
         tag="Player tag (e.g. #2Q82LRL)",
         user="Link tag to a Discord user (optional)",
         api_token="API Token from in-game setting (optional)"
     )
-    async def linkaccount_command(interaction: discord.Interaction, tag: str, user: discord.User = None, api_token: str = None):
+    async def linkaccount_command(interaction: disnake.Interaction, tag: str, user: disnake.User = None, api_token: str = None):
         await interaction.response.defer()
 
         # Normalize player tag
@@ -119,7 +119,7 @@ def setup(bot):
         # Fetch player data
         player_data = await get_coc_player(player_tag)
         if not player_data:
-            embed = discord.Embed(title="Link Failed", description="No account found for the provided tag.", color=0xcccccc)
+            embed = disnake.Embed(title="Link Failed", description="No account found for the provided tag.", color=0xcccccc)
             await interaction.followup.send(embed=embed)
             return
         player_name = player_data.get("name", "?")
@@ -134,7 +134,7 @@ def setup(bot):
         # Check if tag is already linked to the interaction user and no API token provided
         all_linked_tags = [acc.get("tag") for acc in user_data.get("verified", [])] + [acc.get("tag") for acc in user_data.get("unverified", [])]
         if not api_token and player_tag in all_linked_tags and target_user_id == str(interaction.user.id):
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Error",
                 description=f"**{player_name} ({player_tag})** is already linked with your account.",
                 color=0xcccccc
@@ -149,7 +149,7 @@ def setup(bot):
             other_linked_tags = [acc.get("tag") for acc in user_data_other.get("verified", [])] + [acc.get("tag") for acc in user_data_other.get("unverified", [])]
             if user_data_other["discord_id"] != target_user_id and player_tag in other_linked_tags:
                 if not api_token:
-                    embed = discord.Embed(
+                    embed = disnake.Embed(
                         title="Link Error",
                         description=f"**{player_name} ({player_tag})** is already linked to another user. If you own this account, use an API token to link.",
                         color=0xcccccc
@@ -161,7 +161,7 @@ def setup(bot):
         if api_token:
             is_token_valid = await verify_coc_token(player_tag, api_token)
             if not is_token_valid:
-                embed = discord.Embed(
+                embed = disnake.Embed(
                     title="Link Failed",
                     description="Invalid API token. Token can be found in in-game setting.",
                     color=0xcccccc
@@ -178,7 +178,7 @@ def setup(bot):
             # Save to MongoDB
             await save_linked_players(user_data)
             # Send success embed for verified link
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Success",
                 description=f"**{player_name} ({player_tag})** linked successfully with token to {target_user.mention}",
                 color=0xcccccc
@@ -194,7 +194,7 @@ def setup(bot):
             # Save to MongoDB
             await save_linked_players(user_data)
             # Send success embed for unverified link
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Success",
                 description=f"**{player_name} ({player_tag})** Linked successfully to {target_user.mention}",
                 color=0xcccccc

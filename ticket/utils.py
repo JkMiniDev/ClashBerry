@@ -5,7 +5,7 @@ import base64
 from urllib.parse import urlparse, parse_qs
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
-import discord
+import disnake
 
 load_dotenv()
 
@@ -112,7 +112,7 @@ class PlayerEmbeds:
             tag_clean = player_tag[1:]
             title_url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag_clean}"
         
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title=f"{player_name} ({player_tag})",
             url=title_url,
             color=0xcccccc
@@ -326,7 +326,7 @@ class PlayerEmbeds:
                 result.append("\n".join(lines))
             return result if result else ["None"]
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Army Overview",
             color=0xcccccc
         )
@@ -381,17 +381,17 @@ class PlayerEmbeds:
         
         return embed
 
-class TicketViewSelector(discord.ui.Select):
+class TicketViewSelector(disnake.ui.Select):
     def __init__(self, player_data, current_view):
         self.player_data = player_data
         options = [
-            discord.SelectOption(
+            disnake.SelectOption(
                 label="Profile Overview",
                 description="Show player profile information",
                 emoji="<:EXP:1390652382693556324>",
                 default=(current_view == "Profile Overview")
             ),
-            discord.SelectOption(
+            disnake.SelectOption(
                 label="Army Overview",
                 description="Show troops, spells, and heroes",
                 emoji="<:Troops:1395132747043049544>",
@@ -405,7 +405,7 @@ class TicketViewSelector(discord.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: disnake.Interaction):
         if self.values[0] == "Profile Overview":
             embed = PlayerEmbeds.player_info(self.player_data)
         else:
@@ -414,7 +414,7 @@ class TicketViewSelector(discord.ui.Select):
         view = TicketProfileView(self.player_data, current_view=self.values[0])
         await interaction.response.edit_message(embed=embed, view=view)
 
-class TicketProfileView(discord.ui.View):
+class TicketProfileView(disnake.ui.View):
     def __init__(self, player_data, current_view="Profile Overview"):
         super().__init__(timeout=None)
         self.player_data = player_data

@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -41,11 +41,11 @@ async def save_linked_clans(data):
 
 def setup(bot):
     @bot.tree.command(name="addclan", description="Link a clan to this server.")
-    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    async def addclan_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
+    async def addclan_command(interaction: disnake.Interaction, tag: str):
         # Admin check
         if not interaction.user.guild_permissions.administrator:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Error",
                 description="You don't have permission to add clan in the server.",
                 color=0xcccccc
@@ -60,7 +60,7 @@ def setup(bot):
 
         clan_data = await get_coc_clan(clan_tag)
         if not clan_data:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Error",
                 description="No clan found for the provided tag.",
                 color=0xcccccc
@@ -72,7 +72,7 @@ def setup(bot):
         data = await get_linked_clans(str(interaction.guild.id))
         guild_id = str(interaction.guild.id)
         if any(acc['tag'].upper() == clan_tag for acc in data["clans"]):
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Link Error",
                 description=f"**{clan_name} {clan_tag}** already linked to this server.",
                 color=0xcccccc
@@ -81,7 +81,7 @@ def setup(bot):
             return
         data["clans"].append({"name": clan_name, "tag": clan_tag})
         await save_linked_clans(data)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Link Success",
             description=f"**{clan_name} {clan_tag}** linked successfully to this server.",
             color=0xcccccc

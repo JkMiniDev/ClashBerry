@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import json  # Added for max_lvl.json and emoji loading
@@ -99,7 +99,7 @@ class PlayerEmbeds:
             tag_clean = player_tag[1:]
             title_url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag_clean}"
         
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title=f"{player_name} ({player_tag})",
             url=title_url,
             color=0xcccccc
@@ -313,7 +313,7 @@ class PlayerEmbeds:
                 result.append("\n".join(lines))
             return result if result else ["None"]
 
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Army Overview",
             color=0xcccccc
         )
@@ -359,17 +359,17 @@ class PlayerEmbeds:
                 embed.add_field(name="\u200b", value=extra_value, inline=False)
         return embed
 
-class ViewSelector(discord.ui.Select):
+class ViewSelector(disnake.ui.Select):
     def __init__(self, player_data, current_view):
         self.player_data = player_data
         options = [
-            discord.SelectOption(
+            disnake.SelectOption(
                 label="Profile Overview",
                 description="Show player profile information",
                 emoji="<:EXP:1390652382693556324>",
                 default=(current_view == "Profile Overview")
             ),
-            discord.SelectOption(
+            disnake.SelectOption(
                 label="Army Overview",
                 description="Show troops, spells, and heroes",
                 emoji="<:Troops:1395132747043049544>",
@@ -383,7 +383,7 @@ class ViewSelector(discord.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: disnake.Interaction):
         if self.values[0] == "Profile Overview":
             embed = PlayerEmbeds.player_info(self.player_data)
         else:
@@ -392,7 +392,7 @@ class ViewSelector(discord.ui.Select):
         view = ProfileButtonView(self.player_data, current_view=self.values[0])
         await interaction.response.edit_message(embed=embed, view=view)
 
-class ProfileButtonView(discord.ui.View):
+class ProfileButtonView(disnake.ui.View):
     def __init__(self, player_data, current_view="Profile Overview"):
         super().__init__(timeout=None)
         self.player_data = player_data
@@ -401,9 +401,9 @@ class ProfileButtonView(discord.ui.View):
 
         self.add_item(ViewSelector(player_data, current_view))
 
-        self.refresh_btn = discord.ui.Button(
+        self.refresh_btn = disnake.ui.Button(
             emoji="🔃",
-            style=discord.ButtonStyle.secondary,
+            style=disnake.ButtonStyle.secondary,
             custom_id="refresh_btn"
         )
         self.refresh_btn.callback = self.refresh_btn_callback
@@ -412,13 +412,13 @@ class ProfileButtonView(discord.ui.View):
         if self.player_tag:
             tag = self.player_tag.replace("#", "")
             url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag}"
-            self.add_item(discord.ui.Button(
+            self.add_item(disnake.ui.Button(
                 label="Open In-game",
                 url=url,
-                style=discord.ButtonStyle.link
+                style=disnake.ButtonStyle.link
             ))
 
-    async def refresh_btn_callback(self, interaction: discord.Interaction):
+    async def refresh_btn_callback(self, interaction: disnake.Interaction):
         await interaction.response.defer()
         fresh_data = await get_coc_player(self.player_tag)
         if not fresh_data:
@@ -521,10 +521,10 @@ async def get_linked_players(discord_id):
         return []
 
 def setup(bot):
-    async def player_tag_autocomplete(interaction: discord.Interaction, current: str):
+    async def player_tag_autocomplete(interaction: disnake.Interaction, current: str):
         accounts = await get_linked_players(str(interaction.user.id))
         return [
-            discord.app_commands.Choice(
+            disnake.app_commands.Choice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -533,9 +533,9 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="player", description="Get player information")
-    @discord.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=player_tag_autocomplete)
-    async def player_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
+    @disnake.app_commands.autocomplete(tag=player_tag_autocomplete)
+    async def player_command(interaction: disnake.Interaction, tag: str):
         await interaction.response.defer()
         player_data = await get_coc_player(tag)
         if not player_data:

@@ -1,5 +1,5 @@
 import os
-import discord
+import disnake
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
@@ -66,11 +66,11 @@ async def get_linked_clans(guild_id):
 
 # ---------- Autocomplete ----------
 def setup(bot):
-    async def clan_tag_autocomplete(interaction: discord.Interaction, current: str):
+    async def clan_tag_autocomplete(interaction: disnake.Interaction, current: str):
         data = await get_linked_clans(str(interaction.guild.id))
         clans = data.get("clans", [])
         return [
-            discord.app_commands.Choice(
+            disnake.app_commands.Choice(
                 name=f"{clan['name']} ({clan['tag']})",
                 value=clan['tag']
             )
@@ -79,9 +79,9 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="clan", description="Get clan information.")
-    @discord.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
-    @discord.app_commands.autocomplete(tag=clan_tag_autocomplete)
-    async def clan_command(interaction: discord.Interaction, tag: str):
+    @disnake.app_commands.describe(tag="Clan tag (e.g. #2Q82LRL)")
+    @disnake.app_commands.autocomplete(tag=clan_tag_autocomplete)
+    async def clan_command(interaction: disnake.Interaction, tag: str):
         await interaction.response.defer()
         clan_data = await get_coc_clan(tag)
         if not clan_data:
@@ -153,7 +153,7 @@ def setup(bot):
             tag_clean = clan_tag[1:]
             title_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag=%23{tag_clean}"
         
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title=f"{clan_name} ({clan_tag})",
             url=title_url,
             color=0xcccccc,
@@ -232,21 +232,21 @@ def setup(bot):
         )
 
         # ========== BUTTON ==========
-        class ClanButtonView(discord.ui.View):
+        class ClanButtonView(disnake.ui.View):
             def __init__(self, coc_url, badge_url):
                 super().__init__()
                 # Add Clan Badge button first
                 if badge_url:
-                    self.add_item(discord.ui.Button(
+                    self.add_item(disnake.ui.Button(
                         label="Clan Badge",
                         url=badge_url,
-                        style=discord.ButtonStyle.link
+                        style=disnake.ButtonStyle.link
                     ))
                 # Add Open In-game button
-                self.add_item(discord.ui.Button(
+                self.add_item(disnake.ui.Button(
                     label="Open In-game",
                     url=coc_url,
-                    style=discord.ButtonStyle.link
+                    style=disnake.ButtonStyle.link
                 ))
 
         coc_url = f"https://link.clashofclans.com/en?action=OpenClanProfile&tag={clan_tag[1:]}" if clan_tag.startswith("#") else clan_tag

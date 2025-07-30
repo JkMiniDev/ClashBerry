@@ -1,10 +1,10 @@
-import discord
+import disnake
 import os
 
 def setup(bot):
     @bot.tree.command(name="help", description="Get bot command details")
-    async def help_command(interaction: discord.Interaction):
-        embed = discord.Embed(
+    async def help_command(interaction: disnake.Interaction):
+        embed = disnake.Embed(
             description=(
                 "## ClashBerry Commands\n\n"
                 "**/clan**\nGet info about a clan.\n\n"
@@ -16,25 +16,25 @@ def setup(bot):
                 "**/setup_ticket**\nSetup the clan application ticket panel.\n\n"
                 "**/unlinkaccount**\nUnlink one of your linked accounts."
             ),
-            color=discord.Color.blurple()
+            color=disnake.Color.blurple()
         )
 
         embed.set_image(url="attachment://file.jpg")
         embed.set_footer(text="If you need more help or facing any error or have any suggestions join our support server to report.")
 
-        class SupportButton(discord.ui.View):
+        class SupportButton(disnake.ui.View):
             def __init__(self):
                 super().__init__()
                 self.add_item(
-                    discord.ui.Button(
+                    disnake.ui.Button(
                         label="Support Server",
-                        url="https://discord.gg/WVvqR7ysBZ",
-                        style=discord.ButtonStyle.link
+                        url="https://disnake.gg/WVvqR7ysBZ",
+                        style=disnake.ButtonStyle.link
                     )
                 )
 
         image_path = os.path.join(os.path.dirname(__file__), "assets", "file.jpg")
-        file = discord.File(image_path, filename="file.jpg")
+        file = disnake.File(image_path, filename="file.jpg")
 
         await interaction.response.send_message(
             embed=embed,
