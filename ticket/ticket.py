@@ -235,10 +235,19 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
 
         staff_mention = staff_role.mention if staff_role else "@Staff"
 
+        # Check if user has multiple accounts for the dropdown
+        all_linked_accounts = await get_linked_accounts(user.id)
+        
+        # Use MultiAccountTicketActionsView if multiple accounts, otherwise regular view
+        if len(all_linked_accounts) > 1:
+            actions_view = MultiAccountTicketActionsView(user.name.lower(), staff_role.id if staff_role else None, player_data, all_linked_accounts)
+        else:
+            actions_view = TicketActionsView(user.name.lower(), staff_role.id if staff_role else None, player_data)
+
         ticket_message = await ticket_channel.send(
             content=f"{user.mention} {staff_mention}",
             embed=welcome_embed,
-            view=TicketActionsView(user.name.lower(), staff_role.id if staff_role else None, player_data)
+            view=actions_view
         )
         await ticket_message.pin()
 
