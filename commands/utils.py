@@ -123,109 +123,11 @@ async def get_coc_player(player_tag):
         print(f"Error fetching player data: {e}")
         return None
 
-async def show_profile(player_tag, interaction_user=None):
-    """Show Clash of Clans player profile with real-time data"""
-    # Fetch real player data from CoC API
-    player_data = await get_coc_player(player_tag)
-    
-    if not player_data:
-        # Fallback embed if API fails
-        embed = disnake.Embed(
-            title="❌ Player Not Found",
-            description=f"**Player Tag:** {player_tag}\n**Status:** Could not fetch player data\n**Discord User:** {interaction_user.mention if interaction_user else 'Unknown'}",
-            color=0xff0000
-        )
-        return embed
-    
-    # Create detailed player profile embed
-    player_name = player_data.get('name', 'Unknown')
-    th_level = player_data.get('townHallLevel', '?')
-    exp_level = player_data.get('expLevel', '?')
-    trophies = player_data.get('trophies', '?')
-    best_trophies = player_data.get('bestTrophies', '?')
-    
-    # Create clickable title URL
-    title_url = None
-    if player_tag.startswith('#'):
-        tag_clean = player_tag[1:]
-        title_url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag_clean}"
-    
-    embed = disnake.Embed(
-        title=f"{player_name} ({player_tag})",
-        url=title_url,
-        color=0x00ff00,
-        timestamp=disnake.utils.utcnow()
-    )
-    
-    # Basic info
-    embed.add_field(
-        name="🏰 Town Hall & Level",
-        value=f"**TH Level:** {th_level}\n**XP Level:** {exp_level}",
-        inline=True
-    )
-    
-    embed.add_field(
-        name="🏆 Trophies",
-        value=f"**Current:** {trophies:,}\n**Best:** {best_trophies:,}",
-        inline=True
-    )
-    
-    # Clan info
-    clan = player_data.get("clan", {})
-    clan_name = clan.get("name", "No Clan")
-    role = player_data.get("role", "member")
-    role_map = {
-        "admin": "Elder",
-        "coLeader": "Co-Leader", 
-        "leader": "Leader",
-        "member": "Member"
-    }
-    clan_role = role_map.get(role, "Member")
-    
-    if clan_name != "No Clan" and clan.get("tag"):
-        clan_tag = clan["tag"].replace("#", "")
-        clan_url = f"https://link.clashofclans.com/?action=OpenClanProfile&tag=%23{clan_tag}"
-        clan_value = f"[{clan_name}]({clan_url})\n**Role:** {clan_role}"
-    else:
-        clan_value = "Not in a clan"
-    
-    embed.add_field(name="⚔️ Clan", value=clan_value, inline=False)
-    
-    # Season stats
-    donations = player_data.get('donations', 0)
-    donations_received = player_data.get('donationsReceived', 0)
-    attack_wins = player_data.get('attackWins', 0)
-    defense_wins = player_data.get('defenseWins', 0)
-    
-    season_stats = f"**Donated:** {donations:,}\n**Received:** {donations_received:,}\n**Attack Wins:** {attack_wins:,}\n**Defense Wins:** {defense_wins:,}"
-    embed.add_field(name="📊 Season Stats", value=season_stats, inline=True)
-    
-    # War stats
-    war_stars = player_data.get('warStars', 0)
-    achievements = {a["name"]: a["value"] for a in player_data.get("achievements", [])}
-    cwl_stars = achievements.get('War League Legend', 0)
-    
-    war_stats = f"**War Stars:** {war_stars:,}\n**CWL Stars:** {cwl_stars:,}"
-    war_preference = player_data.get("warPreference", "").lower()
-    if war_preference == "in":
-        war_stats += "\n**War Opt:** ✅ In"
-    elif war_preference == "out":
-        war_stats += "\n**War Opt:** ❌ Out"
-    
-    embed.add_field(name="⚔️ War Stats", value=war_stats, inline=True)
-    
-    # League badge as thumbnail
-    league = player_data.get("league", {})
-    if league and league.get("iconUrls", {}).get("medium"):
-        embed.set_thumbnail(url=league["iconUrls"]["medium"])
-    
-    # Discord user info
-    if interaction_user:
-        embed.add_field(name="👤 Discord User", value=interaction_user.mention, inline=False)
-    
-    embed.set_footer(text="Player data • Live from Clash of Clans API")
-    
-    return embed
+async def show_profile(interaction, player_data):
+    """Display enhanced Clash of Clans player profile with dropdown menu"""
+    embed = PlayerEmbeds.player_info(player_data)
+    view = TicketProfileView(player_data)
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 # Color mapping for button styles
 BUTTON_COLOR_MAP = {
@@ -243,3 +145,162 @@ BUTTON_COLOR_MAP = {
 def get_button_style(color_name):
     """Convert color name to Discord button style"""
     return BUTTON_COLOR_MAP.get(color_name.lower(), disnake.ButtonStyle.primary)
+
+class PlayerEmbeds:
+    @staticmethod
+    def player_info(player_data):
+        player_tag = player_data.get('tag', '')
+        player_name = player_data.get('name', '?')
+        
+        # Create clickable title URL
+        title_url = None
+        if player_tag and player_tag.startswith('#'):
+            tag_clean = player_tag[1:]
+            title_url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag_clean}"
+        
+        embed = disnake.Embed(
+            title=f"{player_name} ({player_tag})",
+            url=title_url,
+            color=0xcccccc
+        )
+
+        # Description: Town Hall with emoji, Exp, and Trophies in one line
+        th_level = player_data.get('townHallLevel', '?')
+        exp_level = player_data.get('expLevel', '?')
+        trophies = player_data.get('trophies', '?')
+        try:
+            embed.description = f"TH{th_level} • Level {exp_level} • 🏆 {trophies}"
+        except Exception as e:
+            print(f"Error setting embed description: {str(e)}")
+            embed.description = f"TH{th_level} • Level {exp_level} • Trophies: {trophies}"
+
+        # Clan: Name (clickable link) - Role
+        clan = player_data.get("clan", {})
+        clan_name = clan.get("name", "None")
+        role_raw = player_data.get("role", "notInClan")
+        role_map = {
+            "admin": "Elder",
+            "coLeader": "Co-Leader",
+            "leader": "Leader",
+            "member": "Member",
+            "notInClan": "Not In Clan"
+        }
+        clan_role = role_map.get(role_raw, "Unknown")
+        if clan_name != "None" and clan.get("tag"):
+            clan_tag = clan["tag"].replace("#", "")
+            clan_url = f"https://link.clashofclans.com/?action=OpenClanProfile&tag=%23{clan_tag}"
+            clan_display = f"[{clan_name}]({clan_url})"
+            embed.add_field(name="Clan", value=f"{clan_display} - {clan_role}", inline=False)
+        else:
+            embed.add_field(name="Clan", value="Not In Clan", inline=False)
+
+        # Season Stats
+        season_stats = (
+            f"Donated: {player_data.get('donations', 0)}\n"
+            f"Received: {player_data.get('donationsReceived', 0)}\n"
+            f"Attack Wins: {player_data.get('attackWins', 0)}\n"
+            f"Defense Wins: {player_data.get('defenseWins', 0)}"
+        )
+        embed.add_field(name="Season Stats", value=season_stats, inline=False)
+
+        # War Stats field
+        achievements = {a["name"]: a["value"] for a in player_data.get("achievements", [])}
+        war_preference_raw = player_data.get("warPreference")
+        war_preference = war_preference_raw.capitalize() if war_preference_raw else ""
+        war_lines = [
+            f"War Stars: {player_data.get('warStars', '?')}",
+            f"CWL Stars: {achievements.get('War League Legend', 0)}"
+        ]
+        if war_preference == "In":
+            war_lines.append(f"Preference: ✅ In")
+        elif war_preference == "Out":
+            war_lines.append(f"Preference: ❌ Out")
+        war_stats = "\n".join(war_lines)
+        embed.add_field(name="War Stats", value=war_stats, inline=False)
+
+        # Overall Stats (remaining achievements)
+        overall_stats = (
+            f"Best Trophy: {player_data.get('bestTrophies', '?')}\n"
+            f"Attack Wins: {achievements.get('Conqueror', 0)}\n"
+            f"Defense Wins: {achievements.get('Unbreakable', 0)}\n"
+            f"Troops Donated: {achievements.get('Friend in Need', 0)}"
+        )
+        embed.add_field(name="Overall Stats", value=overall_stats, inline=False)
+
+        # League icon (if available)
+        icon = player_data.get("league", {}).get("iconUrls", {}).get("medium")
+        if icon:
+            embed.set_thumbnail(url=icon)
+        
+        return embed
+
+    @staticmethod
+    def army_overview(player_data):
+        embed = disnake.Embed(
+            title="Army Overview",
+            color=0xcccccc
+        )
+        
+        # Basic army info - simplified for now
+        troops = player_data.get("troops", [])
+        spells = player_data.get("spells", [])
+        heroes = player_data.get("heroes", [])
+        
+        if troops:
+            troop_info = "\n".join([f"{troop.get('name', 'Unknown')}: Level {troop.get('level', '?')}" 
+                                   for troop in troops[:10]])  # Show first 10 troops
+            embed.add_field(name="Troops", value=troop_info or "No troops", inline=True)
+        
+        if heroes:
+            hero_info = "\n".join([f"{hero.get('name', 'Unknown')}: Level {hero.get('level', '?')}" 
+                                  for hero in heroes])
+            embed.add_field(name="Heroes", value=hero_info or "No heroes", inline=True)
+        
+        if spells:
+            spell_info = "\n".join([f"{spell.get('name', 'Unknown')}: Level {spell.get('level', '?')}" 
+                                   for spell in spells[:8]])  # Show first 8 spells
+            embed.add_field(name="Spells", value=spell_info or "No spells", inline=False)
+        
+        return embed
+
+class TicketViewSelector(disnake.ui.Select):
+    def __init__(self, player_data, current_view):
+        self.player_data = player_data
+        options = [
+            disnake.SelectOption(
+                label="Profile Overview",
+                description="Show player profile information",
+                emoji="👤",
+                default=(current_view == "Profile Overview")
+            ),
+            disnake.SelectOption(
+                label="Army Overview",
+                description="Show troops, spells, and heroes",
+                emoji="⚔️",
+                default=(current_view == "Army Overview")
+            )
+        ]
+        super().__init__(
+            placeholder="Select a view...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: disnake.Interaction):
+        if self.values[0] == "Profile Overview":
+            embed = PlayerEmbeds.player_info(self.player_data)
+        else:
+            embed = PlayerEmbeds.army_overview(self.player_data)
+        
+        view = TicketProfileView(self.player_data, current_view=self.values[0])
+        await interaction.response.edit_message(embed=embed, view=view)
+
+class TicketProfileView(disnake.ui.View):
+    def __init__(self, player_data, current_view="Profile Overview"):
+        super().__init__(timeout=None)
+        self.player_data = player_data
+        self.player_tag = player_data.get("tag", "")
+        self.current_view = current_view
+
+        self.add_item(TicketViewSelector(player_data, current_view))

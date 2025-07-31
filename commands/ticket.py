@@ -114,8 +114,8 @@ class TagModal(disnake.ui.Modal):
                 color=disnake.Color.green()
             )
 
-        # Create ticket controls view
-        ticket_view = TicketControlsView()
+        # Create ticket actions view with player data
+        ticket_view = TicketActionsView(self.username, self.staff_role_id, player_data) if player_data else TicketControlsView()
         
         # Tag staff if available
         mention_text = ""
@@ -130,9 +130,17 @@ class TagModal(disnake.ui.Modal):
             view=ticket_view
         )
 
-        # Create player profile embed
-        profile_embed = await show_profile(player_tag, interaction.user)
-        await channel.send(embed=profile_embed)
+        # Get player data for the ticket
+        from .utils import get_coc_player
+        player_data = await get_coc_player(player_tag)
+        if not player_data:
+            # Send error if player not found
+            error_embed = disnake.Embed(
+                title="⚠️ Player Not Found",
+                description=f"Could not find player with tag {player_tag}. Please verify the tag is correct.",
+                color=disnake.Color.orange()
+            )
+            await channel.send(embed=error_embed)
 
         # Confirm ticket creation
         success_embed = disnake.Embed(
@@ -141,6 +149,33 @@ class TagModal(disnake.ui.Modal):
             color=disnake.Color.green()
         )
         await interaction.followup.send(embed=success_embed, ephemeral=True)
+
+class TicketActionsView(disnake.ui.View):
+    def __init__(self, username, staff_role_id, player_data):
+        super().__init__(timeout=None)
+        self.username = username
+        self.staff_role_id = staff_role_id
+        self.player_data = player_data
+
+    @disnake.ui.button(label="Player Account", style=disnake.ButtonStyle.primary, custom_id="profile_button")
+    async def profile(self, interaction: disnake.ApplicationCommandInteraction, button: disnake.ui.Button):
+        if interaction.user.name.lower() != self.username:
+            await interaction.response.send_message("Only the ticket creator can view the profile.", ephemeral=True)
+            return
+        from .utils import show_profile
+        await show_profile(interaction, self.player_data)
+
+    @disnake.ui.button(label="🔒 Close Ticket", style=disnake.ButtonStyle.danger, custom_id="close_ticket")
+    async def close_ticket(self, button: disnake.ui.Button, interaction: disnake.ApplicationCommandInteraction):
+        # Check if user has permission to close ticket
+        config = load_config()
+        if config and config.get("staff_role_id"):
+            staff_role = interaction.guild.get_role(int(config["staff_role_id"]))
+            if staff_role not in interaction.user.roles and interaction.channel.permissions_for(interaction.user).manage_channels == False:
+                await interaction.response.send_message("❌ You don't have permission to close this ticket.", ephemeral=True)
+                return
+
+        await interaction.response.send_modal(CloseTicketModal())
 
 class TicketControlsView(disnake.ui.View):
     def __init__(self):
@@ -196,5 +231,6 @@ def setup(bot):
     # Add persistent views
     bot.add_view(TicketPanelView())
     bot.add_view(TicketControlsView())
+    # Note: TicketActionsView is created dynamically with player data
     
     print("Ticket system loaded successfully!")
