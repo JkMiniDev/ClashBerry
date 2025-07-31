@@ -568,11 +568,12 @@ async def get_coc_player(player_tag):
                 print(f"get_coc_player: Failed to fetch player data for tag {player_tag}, status={resp.status}")
                 return None
 
-async def show_profile(interaction, player_data, selected_accounts=None):
+async def show_profile(interaction, player_data, selected_accounts=None, ticket_creator_id=None):
     """Display enhanced Clash of Clans player profile with dropdown menu"""
-    # Add Discord user info to player data
+    # Add Discord user info to player data (use ticket creator if provided, otherwise current user)
     player_data_with_discord = player_data.copy()
-    player_data_with_discord["discord_info"] = f"<@{interaction.user.id}>"
+    discord_user_id = ticket_creator_id if ticket_creator_id else interaction.user.id
+    player_data_with_discord["discord_info"] = f"<@{discord_user_id}>"
     
     embed = PlayerEmbeds.player_info(player_data_with_discord)
     
@@ -827,8 +828,19 @@ class ProfileAccountSwitcher(discord.ui.Select):
             await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
             return
         
+        # Get ticket creator's Discord ID from channel name  
+        ticket_creator_id = None
+        channel_name = interaction.channel.name
+        if channel_name.startswith("ticket-"):
+            # Find the ticket creator from the channel
+            async for message in interaction.channel.history(limit=50, oldest_first=True):
+                if message.author.bot and message.pinned and message.mentions:
+                    ticket_creator_id = message.mentions[0].id
+                    break
+        
         # Add Discord user info to player data
-        player_data["discord_info"] = f"<@{interaction.user.id}>"
+        discord_user_id = ticket_creator_id if ticket_creator_id else interaction.user.id
+        player_data["discord_info"] = f"<@{discord_user_id}>"
         
         # Update the view with new player data
         if self.view.current_view == "Profile Overview":

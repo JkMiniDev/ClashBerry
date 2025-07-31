@@ -268,7 +268,18 @@ class TicketActionsView(discord.ui.View):
 
     @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button")
     async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await show_profile(interaction, self.player_data)
+        # Get ticket creator's Discord ID from channel name
+        channel_name = interaction.channel.name
+        if channel_name.startswith("ticket-"):
+            # Find the ticket creator from the channel
+            ticket_creator_id = None
+            async for message in interaction.channel.history(limit=50, oldest_first=True):
+                if message.author.bot and message.pinned and message.mentions:
+                    ticket_creator_id = message.mentions[0].id
+                    break
+            await show_profile(interaction, self.player_data, None, ticket_creator_id)
+        else:
+            await show_profile(interaction, self.player_data)
 
     @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket")
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -399,7 +410,18 @@ class MultiAccountTicketActionsView(discord.ui.View):
     
     @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button", row=1)
     async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await show_profile(interaction, self.current_player_data, self.all_linked_accounts)
+        # Get ticket creator's Discord ID from channel name
+        channel_name = interaction.channel.name
+        if channel_name.startswith("ticket-"):
+            # Find the ticket creator from the channel
+            ticket_creator_id = None
+            async for message in interaction.channel.history(limit=50, oldest_first=True):
+                if message.author.bot and message.pinned and message.mentions:
+                    ticket_creator_id = message.mentions[0].id
+                    break
+            await show_profile(interaction, self.current_player_data, self.all_linked_accounts, ticket_creator_id)
+        else:
+            await show_profile(interaction, self.current_player_data, self.all_linked_accounts)
 
     @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket", row=1)
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
