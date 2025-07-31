@@ -1,0 +1,24 @@
+{
+  "server_id": "YOUR_SERVER_ID_HERE",
+  "ticket_channel_id": "YOUR_TICKET_CHANNEL_ID_HERE",
+  "staff_role_id": "YOUR_STAFF_ROLE_ID_HERE",
+  "category_id": "YOUR_TICKET_CATEGORY_ID_HERE",
+  "panel_embed": {
+    "title": "🎫 Support Tickets",
+    "description": "Need help? Click the button below to create a support ticket!\n\n**What happens next?**\n✅ A private channel will be created\n✅ Staff will be notified\n✅ We'll help resolve your issue",
+    "color": 3447003,
+    "footer": {
+      "text": "Support Team • Click below to get started"
+    }
+  },
+  "welcome_embed": {
+    "title": "🎫 Ticket Created",
+    "description": "Welcome {user}! Thank you for creating a ticket.\n\n**Please provide the following information:**\n• Your in-game tag\n• Detailed description of your issue\n• Any relevant screenshots\n\nA staff member will assist you shortly!",
+    "color": 65280,
+    "footer": {
+      "text": "Support Team"
+    }
+  },
+  "button_label": "🎟️ Create Ticket",
+  "button_color": "primary"
+}
