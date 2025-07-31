@@ -437,7 +437,12 @@ class TicketViewSelector(discord.ui.Select):
         else:
             embed = PlayerEmbeds.unit_embed(self.player_data)
         
-        view = TicketProfileView(self.player_data, current_view=self.values[0])
+        # Check if parent view has selected_accounts (multi-account view)
+        if hasattr(self.view, 'selected_accounts') and self.view.selected_accounts:
+            view = TicketProfileViewWithSwitcher(self.player_data, self.view.selected_accounts, current_view=self.values[0])
+        else:
+            view = TicketProfileView(self.player_data, current_view=self.values[0])
+        
         await interaction.response.edit_message(embed=embed, view=view)
 
 class TicketProfileView(discord.ui.View):
@@ -565,13 +570,17 @@ async def get_coc_player(player_tag):
 
 async def show_profile(interaction, player_data, selected_accounts=None):
     """Display enhanced Clash of Clans player profile with dropdown menu"""
-    embed = PlayerEmbeds.player_info(player_data)
+    # Add Discord user info to player data
+    player_data_with_discord = player_data.copy()
+    player_data_with_discord["discord_info"] = f"<@{interaction.user.id}>"
+    
+    embed = PlayerEmbeds.player_info(player_data_with_discord)
     
     # If multiple selected accounts, add account switcher to the profile view
     if selected_accounts and len(selected_accounts) > 1:
-        view = TicketProfileViewWithSwitcher(player_data, selected_accounts)
+        view = TicketProfileViewWithSwitcher(player_data_with_discord, selected_accounts)
     else:
-        view = TicketProfileView(player_data)
+        view = TicketProfileView(player_data_with_discord)
     
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -769,10 +778,10 @@ class TicketProfileViewWithSwitcher(discord.ui.View):
         self.current_view = current_view
         self.selected_accounts = selected_accounts
 
-        # Add account switcher dropdown first
-        self.add_item(ProfileAccountSwitcher(selected_accounts, player_data))
-        # Then add the regular view selector
+        # Add the regular view selector first (row 0)
         self.add_item(TicketViewSelector(player_data, current_view))
+        # Then add account switcher dropdown below (row 1)
+        self.add_item(ProfileAccountSwitcher(selected_accounts, player_data))
 
 class ProfileAccountSwitcher(discord.ui.Select):
     def __init__(self, selected_accounts, current_player_data):
@@ -794,7 +803,7 @@ class ProfileAccountSwitcher(discord.ui.Select):
             min_values=1,
             max_values=1,
             options=options,
-            row=0
+            row=1
         )
         self.selected_accounts = selected_accounts
     
@@ -818,8 +827,15 @@ class ProfileAccountSwitcher(discord.ui.Select):
             await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
             return
         
+        # Add Discord user info to player data
+        player_data["discord_info"] = f"<@{interaction.user.id}>"
+        
         # Update the view with new player data
-        new_embed = PlayerEmbeds.player_info(player_data)
+        if self.view.current_view == "Profile Overview":
+            new_embed = PlayerEmbeds.player_info(player_data)
+        else:
+            new_embed = PlayerEmbeds.unit_embed(player_data)
+            
         new_view = TicketProfileViewWithSwitcher(player_data, self.selected_accounts, self.view.current_view)
         
         await interaction.response.edit_message(embed=new_embed, view=new_view)
