@@ -27,6 +27,7 @@ Create a `.env` file in the project root:
 
 ```env
 DISCORD_TOKEN=your_bot_token_here
+COC_API_TOKEN=your_clash_of_clans_api_token_here
 ```
 
 ### 3. Configure the Bot
@@ -60,16 +61,22 @@ Edit `config.json` with your server details:
 }
 ```
 
-### 4. Get Required IDs
+### 4. Get Required IDs and Tokens
 
-To find the required IDs:
-
+#### Discord IDs (Enable Developer Mode first):
 1. **Server ID**: Right-click your server name → Copy Server ID
 2. **Channel ID**: Right-click the channel where tickets panel should be posted → Copy Channel ID  
 3. **Role ID**: Right-click the staff role → Copy Role ID
 4. **Category ID**: Right-click the category where tickets should be created → Copy Category ID
 
-> **Note**: You need to enable Developer Mode in Discord settings to see these options.
+#### Clash of Clans API Token:
+1. Go to [Clash of Clans Developer Portal](https://developer.clashofclans.com/)
+2. Create an account and login
+3. Click "Create New Key"
+4. Add your server's IP address (or use 0.0.0.0/0 for any IP)
+5. Copy the API token and paste it in your `.env` file
+
+> **Note**: You need to enable Developer Mode in Discord settings to see copy ID options.
 
 ### 5. Run the Bot
 
