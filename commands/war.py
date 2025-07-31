@@ -539,3 +539,8 @@ def setup(bot):
         embed = make_overview_embed(war_data, war_type)
         view = WarView(war_data, war_type, current="overview")
         await interaction.followup.send(embed=embed, view=view)
+    
+    # Add autocomplete for the tag parameter
+    @war_command.autocomplete("tag")
+    async def war_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await clan_tag_autocomplete(interaction, current)

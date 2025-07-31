@@ -254,3 +254,8 @@ def setup(bot):
         badge_url = clan_data.get("badgeUrls", {}).get("large")
 
         await interaction.followup.send(embed=embed, view=ClanButtonView(coc_url, badge_url))
+    
+    # Add autocomplete for the tag parameter
+    @clan_command.autocomplete("tag")
+    async def clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await clan_tag_autocomplete(interaction, current)

@@ -110,3 +110,17 @@ def setup(bot):
             color=0xcccccc
         )
         await interaction.followup.send(embed=embed)
+    
+    # Add autocomplete for the tag parameter
+    @removeclan_command.autocomplete("tag")
+    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await clan_tag_autocomplete(interaction, current)    
+    # Add autocomplete for the tag parameter
+    @removeclan_command.autocomplete("tag")
+    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await clan_tag_autocomplete(interaction, current)
+
+    # Add autocomplete for the tag parameter
+    @removeclan_command.autocomplete('tag')
+    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await clan_tag_autocomplete(interaction, current)

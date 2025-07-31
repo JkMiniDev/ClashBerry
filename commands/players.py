@@ -556,3 +556,8 @@ def setup(bot):
         view = ProfileButtonView(player_data, current_view="Profile Overview")
         embed = PlayerEmbeds.player_info(player_data)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+    
+    # Add autocomplete for the tag parameter
+    @player_command.autocomplete("tag")
+    async def player_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
+        return await player_tag_autocomplete(interaction, current)
