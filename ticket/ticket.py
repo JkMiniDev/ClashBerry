@@ -38,10 +38,11 @@ class TicketButton(discord.ui.Button):
         
         if linked_accounts and len(linked_accounts) > 1:
             # Show account selection if multiple accounts
-            await interaction.response.send_message(
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send(
                 embed=discord.Embed(
-                    title="Select Account",
-                    description="You have multiple linked accounts. Please select which account you want to use for this ticket:",
+                    title="Select Accounts",
+                    description="You have multiple linked accounts. Please select which accounts you want to use for this ticket (you can select multiple):",
                     color=discord.Color.blue()
                 ),
                 view=AccountSelectionView(linked_accounts, normalized_username),
@@ -307,32 +308,55 @@ class AccountSelectionView(discord.ui.View):
         self.normalized_username = normalized_username
         self.selected_accounts = []
         
-        # Add account selection dropdown
-        self.add_item(AccountSelectionDropdown(linked_accounts))
+        # Add account selection checkboxes (up to 25 accounts)
+        for i, account in enumerate(linked_accounts[:25]):
+            self.add_item(AccountCheckboxButton(account, i))
     
-    @discord.ui.button(label="Confirm Selection", style=discord.ButtonStyle.green, row=1)
+    @discord.ui.button(label="Confirm Selection", style=discord.ButtonStyle.green, row=4)
     async def confirm_selection(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.selected_accounts:
             await interaction.response.send_message("Please select at least one account.", ephemeral=True)
             return
         
-        if len(self.selected_accounts) > 1:
-            await interaction.response.send_message("Please select only one account for the ticket.", ephemeral=True)
-            return
-        
-        selected_account = self.selected_accounts[0]
         staff_role = get_staff_role(interaction.guild)
         
-        # Create ticket with selected account
+        # Create ticket with selected accounts (use first account as primary)
+        primary_account = self.selected_accounts[0]
         ticket_button = TicketButton("", discord.ButtonStyle.primary)
         await ticket_button.create_ticket_with_account(
             interaction, 
-            selected_account["tag"], 
-            selected_account["name"], 
+            primary_account["tag"], 
+            primary_account["name"], 
             self.normalized_username, 
             staff_role,
-            self.linked_accounts # Pass all linked accounts to the callback
+            self.selected_accounts # Pass only selected accounts to the callback
         )
+
+class AccountCheckboxButton(discord.ui.Button):
+    def __init__(self, account, index):
+        super().__init__(
+            label=f"{account['name']} ({account['tag']})",
+            style=discord.ButtonStyle.secondary,
+            row=index // 5  # 5 buttons per row
+        )
+        self.account = account
+        self.is_selected = False
+    
+    async def callback(self, interaction: discord.Interaction):
+        self.is_selected = not self.is_selected
+        
+        if self.is_selected:
+            self.style = discord.ButtonStyle.green
+            self.label = f"✅ {self.account['name']} ({self.account['tag']})"
+            if self.account not in self.view.selected_accounts:
+                self.view.selected_accounts.append(self.account)
+        else:
+            self.style = discord.ButtonStyle.secondary
+            self.label = f"{self.account['name']} ({self.account['tag']})"
+            if self.account in self.view.selected_accounts:
+                self.view.selected_accounts.remove(self.account)
+        
+        await interaction.response.edit_message(view=self.view)
 
 class AccountSelectionDropdown(discord.ui.Select):
     def __init__(self, linked_accounts):
@@ -372,14 +396,10 @@ class MultiAccountTicketActionsView(discord.ui.View):
         self.staff_role_id = staff_role_id
         self.current_player_data = current_player_data
         self.all_linked_accounts = all_linked_accounts
-        
-        # Add account switcher if multiple accounts
-        if len(all_linked_accounts) > 1:
-            self.add_item(AccountSwitcherDropdown(all_linked_accounts, current_player_data))
     
     @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button", row=1)
     async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await show_profile(interaction, self.current_player_data)
+        await show_profile(interaction, self.current_player_data, self.all_linked_accounts)
 
     @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket", row=1)
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):

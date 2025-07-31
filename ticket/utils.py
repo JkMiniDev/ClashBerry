@@ -563,10 +563,16 @@ async def get_coc_player(player_tag):
                 print(f"get_coc_player: Failed to fetch player data for tag {player_tag}, status={resp.status}")
                 return None
 
-async def show_profile(interaction, player_data):
+async def show_profile(interaction, player_data, selected_accounts=None):
     """Display enhanced Clash of Clans player profile with dropdown menu"""
     embed = PlayerEmbeds.player_info(player_data)
-    view = TicketProfileView(player_data)
+    
+    # If multiple selected accounts, add account switcher to the profile view
+    if selected_accounts and len(selected_accounts) > 1:
+        view = TicketProfileViewWithSwitcher(player_data, selected_accounts)
+    else:
+        view = TicketProfileView(player_data)
+    
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 def get_staff_role(guild):
@@ -754,3 +760,66 @@ async def get_linked_accounts(discord_id):
     except Exception as e:
         print(f"Error fetching linked accounts for user {discord_id}: {e}")
         return []
+
+class TicketProfileViewWithSwitcher(discord.ui.View):
+    def __init__(self, player_data, selected_accounts, current_view="Profile Overview"):
+        super().__init__(timeout=None)
+        self.player_data = player_data
+        self.player_tag = player_data.get("tag", "")
+        self.current_view = current_view
+        self.selected_accounts = selected_accounts
+
+        # Add account switcher dropdown first
+        self.add_item(ProfileAccountSwitcher(selected_accounts, player_data))
+        # Then add the regular view selector
+        self.add_item(TicketViewSelector(player_data, current_view))
+
+class ProfileAccountSwitcher(discord.ui.Select):
+    def __init__(self, selected_accounts, current_player_data):
+        current_tag = current_player_data.get("tag", "")
+        
+        # Create options from selected accounts only
+        options = []
+        for account in selected_accounts[:25]:  # Discord limit of 25 options
+            is_current = account["tag"] == current_tag
+            options.append(discord.SelectOption(
+                label=f"{account['name']} ({account['tag']})",
+                value=account["tag"],
+                description="Currently viewing" if is_current else f"Switch to {account['name']}",
+                default=is_current
+            ))
+        
+        super().__init__(
+            placeholder="Switch account...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            row=0
+        )
+        self.selected_accounts = selected_accounts
+    
+    async def callback(self, interaction: discord.Interaction):
+        selected_tag = self.values[0]
+        
+        # Find the selected account
+        selected_account = None
+        for account in self.selected_accounts:
+            if account["tag"] == selected_tag:
+                selected_account = account
+                break
+        
+        if not selected_account:
+            await interaction.response.send_message("Account not found.", ephemeral=True)
+            return
+        
+        # Get fresh player data for the selected account
+        player_data = await get_coc_player(selected_tag)
+        if player_data is None:
+            await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
+            return
+        
+        # Update the view with new player data
+        new_embed = PlayerEmbeds.player_info(player_data)
+        new_view = TicketProfileViewWithSwitcher(player_data, self.selected_accounts, self.view.current_view)
+        
+        await interaction.response.edit_message(embed=new_embed, view=new_view)
