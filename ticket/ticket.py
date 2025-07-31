@@ -18,61 +18,75 @@ class TicketButton(discord.ui.Button):
             
             # Defer immediately to prevent timeout
             await interaction.response.defer(ephemeral=True)
-        
-        config = get_config()
-        
-        # Check if this is the configured server
-        if str(interaction.guild.id) != config.get("server_id"):
-            await interaction.followup.send("This ticket system is not configured for this server.", ephemeral=True)
-            return
             
-        normalized_username = interaction.user.name.lower().replace('.', '')
-        channel_name = f"ticket-{normalized_username}"
-        found_channel = None
-        for channel in interaction.guild.text_channels:
-            if channel.name == channel_name:
-                found_channel = channel
-                break
-        if found_channel:
-            embed = discord.Embed(
-                description=f"You have already opened a ticket: {found_channel.mention}",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
+            config = get_config()
+            
+            # Check if this is the configured server
+            if str(interaction.guild.id) != config.get("server_id"):
+                await interaction.followup.send("This ticket system is not configured for this server.", ephemeral=True)
+                return
+                
+            normalized_username = interaction.user.name.lower().replace('.', '')
+            channel_name = f"ticket-{normalized_username}"
+            found_channel = None
+            for channel in interaction.guild.text_channels:
+                if channel.name == channel_name:
+                    found_channel = channel
+                    break
+            if found_channel:
+                embed = discord.Embed(
+                    description=f"You have already opened a ticket: {found_channel.mention}",
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
-        # Check for linked accounts first
-        linked_accounts = await get_linked_accounts(interaction.user.id)
+            # Check for linked accounts first
+            linked_accounts = await get_linked_accounts(interaction.user.id)
+            
+            if linked_accounts and len(linked_accounts) > 1:
+                # Show account selection if multiple accounts
+                await interaction.followup.send(
+                    embed=discord.Embed(
+                        title="Select Accounts",
+                        description="You have multiple linked accounts. Please select which accounts you want to use for this ticket (you can select multiple):",
+                        color=discord.Color.blue()
+                    ),
+                    view=AccountSelectionView(linked_accounts, normalized_username),
+                    ephemeral=True
+                )
+            elif linked_accounts and len(linked_accounts) == 1:
+                # Auto-use single linked account
+                account = linked_accounts[0]
+                staff_role = get_staff_role(interaction.guild)
+                await self.create_ticket_with_account(interaction, account["tag"], account["name"], normalized_username, staff_role, linked_accounts)
+            else:
+                # No linked accounts, show manual tag entry
+                staff_role = get_staff_role(interaction.guild)
+                staff_role_id = staff_role.id if staff_role else None
+                # Can't use followup for modals, need to use response
+                # But interaction was already deferred, so this will fail
+                # Need a different approach - send a message with instructions
+                embed = discord.Embed(
+                    title="Manual Tag Entry",
+                    description="You don't have any linked accounts. Please use the linkaccount command first to link your accounts, then try creating a ticket again.",
+                    color=discord.Color.orange()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
         
-        if linked_accounts and len(linked_accounts) > 1:
-            # Show account selection if multiple accounts
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    title="Select Accounts",
-                    description="You have multiple linked accounts. Please select which accounts you want to use for this ticket (you can select multiple):",
-                    color=discord.Color.blue()
-                ),
-                view=AccountSelectionView(linked_accounts, normalized_username),
-                ephemeral=True
-            )
-        elif linked_accounts and len(linked_accounts) == 1:
-            # Auto-use single linked account
-            account = linked_accounts[0]
-            staff_role = get_staff_role(interaction.guild)
-            await self.create_ticket_with_account(interaction, account["tag"], account["name"], normalized_username, staff_role, linked_accounts)
-        else:
-            # No linked accounts, show manual tag entry
-            staff_role = get_staff_role(interaction.guild)
-            staff_role_id = staff_role.id if staff_role else None
-            # Can't use followup for modals, need to use response
-            # But interaction was already deferred, so this will fail
-            # Need a different approach - send a message with instructions
-            embed = discord.Embed(
-                title="Manual Tag Entry",
-                description="You don't have any linked accounts. Please use the linkaccount command first to link your accounts, then try creating a ticket again.",
-                color=discord.Color.orange()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        except discord.NotFound:
+            # Interaction already handled or expired, ignore
+            print(f"Interaction already handled for user {interaction.user.id}")
+            pass
+        except Exception as e:
+            print(f"Error in ticket button callback: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ An error occurred. Please try again.", ephemeral=True)
+                else:
+                    await interaction.followup.send("❌ An error occurred. Please try again.", ephemeral=True)
+            except:
+                pass
     
     async def create_ticket_with_account(self, interaction, player_tag, player_name, normalized_username, staff_role, all_linked_accounts):
         """Create ticket with selected account"""
