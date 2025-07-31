@@ -9,6 +9,18 @@ import discord
 load_dotenv()
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
+
+# Initialize MongoDB client for linked accounts
+if MONGODB_DATABASE:
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+    accounts_db = mongodb_client[MONGODB_DATABASE]
+else:
+    print("Warning: MONGODB_DATABASE environment variable is not set")
+    mongodb_client = None
+    accounts_db = None
 
 # Load ticket configuration from JSON file
 config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ticket_config.json')
@@ -720,3 +732,25 @@ async def send_ticket_panel(bot):
         
     except Exception as e:
         print(f"send_ticket_panel: Error sending ticket panel: {str(e)}")
+
+async def get_linked_accounts(discord_id):
+    """Get linked accounts for a Discord user"""
+    if accounts_db is None:
+        print("Error: MongoDB not initialized for linked accounts")
+        return []
+    
+    try:
+        linked_players_collection = accounts_db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": str(discord_id)})
+        if result:
+            # Combine verified and unverified accounts
+            verified = result.get("verified", [])
+            unverified = result.get("unverified", [])
+            all_accounts = verified + unverified
+            print(f"get_linked_accounts: Found {len(all_accounts)} accounts for user {discord_id}")
+            return all_accounts
+        print(f"get_linked_accounts: No linked accounts found for user {discord_id}")
+        return []
+    except Exception as e:
+        print(f"Error fetching linked accounts for user {discord_id}: {e}")
+        return []

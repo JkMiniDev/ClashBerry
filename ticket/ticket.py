@@ -1,5 +1,5 @@
 import discord
-from .utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile
+from .utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile, get_linked_accounts
 
 class TicketPanelView(discord.ui.View):
     def __init__(self, button_label="🎟️ Create Ticket", button_color=discord.ButtonStyle.primary):
@@ -33,9 +33,128 @@ class TicketButton(discord.ui.Button):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        staff_role = get_staff_role(interaction.guild)
-        staff_role_id = staff_role.id if staff_role else None
-        await interaction.response.send_modal(TagModal(staff_role_id, normalized_username))
+        # Check for linked accounts first
+        linked_accounts = await get_linked_accounts(interaction.user.id)
+        
+        if linked_accounts and len(linked_accounts) > 1:
+            # Show account selection if multiple accounts
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Select Account",
+                    description="You have multiple linked accounts. Please select which account you want to use for this ticket:",
+                    color=discord.Color.blue()
+                ),
+                view=AccountSelectionView(linked_accounts, normalized_username),
+                ephemeral=True
+            )
+        elif linked_accounts and len(linked_accounts) == 1:
+            # Auto-use single linked account
+            account = linked_accounts[0]
+            staff_role = get_staff_role(interaction.guild)
+            await self.create_ticket_with_account(interaction, account["tag"], account["name"], normalized_username, staff_role, linked_accounts)
+        else:
+            # No linked accounts, show manual tag entry
+            staff_role = get_staff_role(interaction.guild)
+            staff_role_id = staff_role.id if staff_role else None
+            await interaction.response.send_modal(TagModal(staff_role_id, normalized_username))
+    
+    async def create_ticket_with_account(self, interaction, player_tag, player_name, normalized_username, staff_role, all_linked_accounts):
+        """Create ticket with selected account"""
+        from .utils import get_coc_player
+        
+        # Get fresh player data
+        player_data = await get_coc_player(player_tag)
+        if player_data is None:
+            if interaction.response.is_done():
+                await interaction.followup.send("😓 Failed to fetch player data.", ephemeral=True)
+            else:
+                await interaction.response.send_message("😓 Failed to fetch player data.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        user = interaction.user
+        channel_name = f"ticket-{normalized_username}"
+        
+        # Check for existing ticket
+        found_channel = None
+        for channel in guild.text_channels:
+            if channel.name == channel_name:
+                found_channel = channel
+                break
+
+        if found_channel:
+            embed = discord.Embed(
+                description=f"You already have a ticket: {found_channel.mention}",
+                color=discord.Color.red()
+            )
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        if not staff_role:
+            if interaction.response.is_done():
+                await interaction.followup.send("Staff role is not configured properly.", ephemeral=True)
+            else:
+                await interaction.response.send_message("Staff role is not configured properly.", ephemeral=True)
+            return
+
+        category_id = get_category_id()
+        category = guild.get_channel(category_id) if category_id else None
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            staff_role: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_messages=True)
+        }
+
+        # Defer the response if not already done
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+
+        ticket_channel = await guild.create_text_channel(
+            name=channel_name,
+            category=category,
+            overwrites=overwrites,
+            reason="Clan application ticket"
+        )
+
+        welcome_embed_data = get_welcome_embed_data()
+        if welcome_embed_data:
+            welcome_embed = discord.Embed.from_dict(welcome_embed_data)
+        else:
+            welcome_embed = discord.Embed(
+                title="Clan Application",
+                description=(
+                    f"Welcome to the clan application.\n\n"
+                    f"**Current Account:** {player_data.get('name', 'Unknown')} ({player_data.get('tag', 'Unknown')})\n\n"
+                    f"Your ticket will be handled shortly."
+                ),
+                color=discord.Color.green()
+            )
+
+        staff_mention = staff_role.mention if staff_role else "@Staff"
+
+        # Use MultiAccountTicketActionsView if multiple accounts, otherwise regular view
+        if len(all_linked_accounts) > 1:
+            actions_view = MultiAccountTicketActionsView(user.name.lower(), staff_role.id if staff_role else None, player_data, all_linked_accounts)
+        else:
+            actions_view = TicketActionsView(user.name.lower(), staff_role.id if staff_role else None, player_data)
+        
+        ticket_message = await ticket_channel.send(
+            content=f"{user.mention} {staff_mention}",
+            embed=welcome_embed,
+            view=actions_view
+        )
+        await ticket_message.pin()
+
+        confirm_embed = discord.Embed(
+            title="✅ Ticket Created",
+            description=f"Your ticket has been created: {ticket_channel.mention}",
+            color=discord.Color.green()
+        )
+        await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
 class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
     tag = discord.ui.TextInput(
@@ -172,3 +291,174 @@ class DeleteConfirmView(discord.ui.View):
 
 def setup(bot):
     pass  # No commands to register
+class AccountSelectionView(discord.ui.View):
+    def __init__(self, linked_accounts, normalized_username):
+        super().__init__(timeout=300)
+        self.linked_accounts = linked_accounts
+        self.normalized_username = normalized_username
+        self.selected_accounts = []
+        
+        # Add account selection dropdown
+        self.add_item(AccountSelectionDropdown(linked_accounts))
+    
+    @discord.ui.button(label="Confirm Selection", style=discord.ButtonStyle.green, row=1)
+    async def confirm_selection(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.selected_accounts:
+            await interaction.response.send_message("Please select at least one account.", ephemeral=True)
+            return
+        
+        if len(self.selected_accounts) > 1:
+            await interaction.response.send_message("Please select only one account for the ticket.", ephemeral=True)
+            return
+        
+        selected_account = self.selected_accounts[0]
+        staff_role = get_staff_role(interaction.guild)
+        
+        # Create ticket with selected account
+        ticket_button = TicketButton("", discord.ButtonStyle.primary)
+        await ticket_button.create_ticket_with_account(
+            interaction, 
+            selected_account["tag"], 
+            selected_account["name"], 
+            self.normalized_username, 
+            staff_role,
+            self.linked_accounts # Pass all linked accounts to the callback
+        )
+
+class AccountSelectionDropdown(discord.ui.Select):
+    def __init__(self, linked_accounts):
+        # Create options from linked accounts
+        options = []
+        for i, account in enumerate(linked_accounts[:25]):  # Discord limit of 25 options
+            options.append(discord.SelectOption(
+                label=f"{account['name']} ({account['tag']})",
+                value=str(i),
+                description=f"Player: {account['name']}"
+            ))
+        
+        super().__init__(
+            placeholder="Choose an account...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+        self.linked_accounts = linked_accounts
+    
+    async def callback(self, interaction: discord.Interaction):
+        selected_index = int(self.values[0])
+        selected_account = self.linked_accounts[selected_index]
+        
+        # Update parent view's selected accounts
+        self.view.selected_accounts = [selected_account]
+        
+        await interaction.response.send_message(
+            f"Selected: **{selected_account['name']} ({selected_account['tag']})**",
+            ephemeral=True
+        )
+
+class MultiAccountTicketActionsView(discord.ui.View):
+    def __init__(self, username, staff_role_id, current_player_data, all_linked_accounts):
+        super().__init__(timeout=None)
+        self.username = username
+        self.staff_role_id = staff_role_id
+        self.current_player_data = current_player_data
+        self.all_linked_accounts = all_linked_accounts
+        
+        # Add account switcher if multiple accounts
+        if len(all_linked_accounts) > 1:
+            self.add_item(AccountSwitcherDropdown(all_linked_accounts, current_player_data))
+    
+    @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button", row=1)
+    async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await show_profile(interaction, self.current_player_data)
+
+    @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket", row=1)
+    async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        staff_role = get_staff_role(interaction.guild)
+        if not staff_role:
+            await interaction.response.send_message("Staff role is not configured.", ephemeral=True)
+            return
+        if staff_role not in interaction.user.roles:
+            await interaction.response.send_message("Please ask staff to delete this ticket.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="Delete Confirmation",
+            description="Are you sure you want to delete this ticket?",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(
+            embed=embed,
+            view=DeleteConfirmView(),
+            ephemeral=True
+        )
+
+class AccountSwitcherDropdown(discord.ui.Select):
+    def __init__(self, all_linked_accounts, current_player_data):
+        current_tag = current_player_data.get("tag", "")
+        
+        # Create options from linked accounts
+        options = []
+        for account in all_linked_accounts[:25]:  # Discord limit of 25 options
+            is_current = account["tag"] == current_tag
+            options.append(discord.SelectOption(
+                label=f"{account['name']} ({account['tag']})",
+                value=account["tag"],
+                description="Currently selected" if is_current else f"Switch to {account['name']}",
+                default=is_current
+            ))
+        
+        super().__init__(
+            placeholder="Switch account...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            row=0
+        )
+        self.all_linked_accounts = all_linked_accounts
+    
+    async def callback(self, interaction: discord.Interaction):
+        selected_tag = self.values[0]
+        
+        # Find the selected account
+        selected_account = None
+        for account in self.all_linked_accounts:
+            if account["tag"] == selected_tag:
+                selected_account = account
+                break
+        
+        if not selected_account:
+            await interaction.response.send_message("Account not found.", ephemeral=True)
+            return
+        
+        # Get fresh player data for the selected account
+        from .utils import get_coc_player
+        player_data = await get_coc_player(selected_tag)
+        if player_data is None:
+            await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
+            return
+        
+        # Update the view with new player data
+        new_view = MultiAccountTicketActionsView(
+            self.view.username, 
+            self.view.staff_role_id, 
+            player_data, 
+            self.all_linked_accounts
+        )
+        
+        # Update the welcome embed
+        welcome_embed_data = get_welcome_embed_data()
+        if welcome_embed_data:
+            welcome_embed = discord.Embed.from_dict(welcome_embed_data)
+        else:
+            welcome_embed = discord.Embed(
+                title="Clan Application",
+                description=(
+                    f"Welcome to the clan application.\n\n"
+                    f"**Current Account:** {player_data.get('name', 'Unknown')} ({player_data.get('tag', 'Unknown')})\n\n"
+                    f"Your ticket will be handled shortly."
+                ),
+                color=discord.Color.green()
+            )
+        
+        await interaction.response.edit_message(embed=welcome_embed, view=new_view)
