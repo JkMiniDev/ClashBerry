@@ -58,14 +58,40 @@ To get the required IDs, enable Developer Mode in Discord (Settings → Advanced
 
 ### 3. Customize Embeds (Optional)
 
-You can customize the `panel_embed_data` and `welcome_embed_data` sections:
+The JSON file now includes comprehensive sample embeds with all available Discord embed features. You can customize the `panel_embed_data` and `welcome_embed_data` sections:
 
+**Basic Properties:**
 - **title**: The embed title
 - **description**: Main embed text (supports Discord markdown)
 - **color**: Decimal color code (use a color picker and convert to decimal)
-- **footer.text**: Small text at the bottom
-- **thumbnail.url**: Image URL for thumbnail
 - **content**: Text that appears above the embed (can be null)
+
+**Advanced Properties:**
+- **footer.text**: Small text at the bottom
+- **footer.icon_url**: Small icon next to footer text
+- **thumbnail.url**: Small image in top-right corner
+- **image.url**: Large image at the bottom
+- **author.name**: Author name at the top
+- **author.icon_url**: Small icon next to author name
+- **fields**: Array of field objects with name, value, and inline properties
+- **timestamp**: ISO timestamp for embed (shows "Today at X:XX PM")
+
+**Field Structure:**
+```json
+{
+  "name": "Field Title",
+  "value": "Field content",
+  "inline": true
+}
+```
+
+**Color Examples:**
+- Red: 16711680
+- Green: 65280  
+- Blue: 255
+- Orange: 16744192
+- Purple: 10181046
+- Gold: 16766720
 
 ### 4. Button Customization
 
