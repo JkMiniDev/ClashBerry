@@ -51,7 +51,7 @@ load_config()
 # Load max_lvl.json using absolute path
 try:
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    max_json_path = os.path.join(script_dir, 'config', 'max_lvl.json')
+    max_json_path = os.path.join(script_dir, 'ticket_config', 'max_lvl.json')
     with open(max_json_path, 'r') as f:
         max_levels = json.load(f)
 except FileNotFoundError:
@@ -102,9 +102,9 @@ class PlayerEmbeds:
     # Load emoji mappings from JSON files
     script_dir = os.path.dirname(os.path.abspath(__file__))
     try:
-        with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
+        with open(os.path.join(script_dir, 'ticket_emoji', 'town_halls.json'), 'r') as f:
             TH_EMOJIS = json.load(f)
-        with open(os.path.join(script_dir, 'emoji', 'home_units.json'), 'r') as f:
+        with open(os.path.join(script_dir, 'ticket_emoji', 'home_units.json'), 'r') as f:
             UNIT_EMOJIS = json.load(f)
         
         # Combine all emojis into one map for compatibility

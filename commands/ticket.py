@@ -1,5 +1,5 @@
 import discord
-from .utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile, get_linked_accounts
+from commands.utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile, get_linked_accounts
 
 class TicketPanelView(discord.ui.View):
     def __init__(self, button_label="🎟️ Create Ticket", button_color=discord.ButtonStyle.primary):
@@ -90,7 +90,7 @@ class TicketButton(discord.ui.Button):
     
     async def create_ticket_with_account(self, interaction, player_tag, player_name, normalized_username, staff_role, all_linked_accounts):
         """Create ticket with selected account"""
-        from .utils import get_coc_player
+        from commands.utils import get_coc_player
         
         # Get fresh player data
         player_data = await get_coc_player(player_tag)
@@ -201,7 +201,7 @@ class TagModal(discord.ui.Modal, title="Enter In-game Tag"):
         self.username = username
 
     async def on_submit(self, interaction: discord.Interaction):
-        from .utils import get_coc_player
+        from commands.utils import get_coc_player
         player_tag = self.tag.value.replace(" ", "").upper().replace("O", "0")
         if not player_tag.startswith("#"):
             player_tag = "#" + player_tag

@@ -24,7 +24,7 @@ bot = commands.Bot(
 )
 
 # List all directories you want to load commands from
-command_dirs = ["commands", "ticket"]
+command_dirs = ["commands"]
 for dir_name in command_dirs:
     commands_dir = pathlib.Path(__file__).parent / dir_name
     if not commands_dir.exists():
@@ -42,8 +42,8 @@ for dir_name in command_dirs:
 
 @bot.event
 async def on_ready():
-    from ticket.ticket import TicketPanelView
-    from ticket.utils import send_ticket_panel
+    from commands.ticket import TicketPanelView
+    from commands.utils import send_ticket_panel
     
     bot.add_view(TicketPanelView())
     await bot.tree.sync()
