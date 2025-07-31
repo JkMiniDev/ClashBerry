@@ -17,14 +17,14 @@ bot = commands.Bot(
     intents=intents,
     activity=disnake.Activity(
         type=disnake.ActivityType.custom,
-        name="🔍 Scouting Bases",
-        state="🔍 Scouting Bases"
+        name="🎫 Managing Tickets",
+        state="🎫 Managing Tickets"
     ),
     status=disnake.Status.online
 )
 
-# List all directories you want to load commands from
-command_dirs = ["commands", "ticket"]
+# Load commands from Commands directory (ticket bot)
+command_dirs = ["Commands"]
 for dir_name in command_dirs:
     commands_dir = pathlib.Path(__file__).parent / dir_name
     if not commands_dir.exists():
@@ -32,7 +32,7 @@ for dir_name in command_dirs:
     for file in commands_dir.glob("*.py"):
         if file.name.startswith("_"):
             continue
-        # Module name includes directory for uniqueness (e.g. ticket.ticket)
+        # Module name includes directory for uniqueness (e.g. Commands.ticket)
         module_name = f"{dir_name}.{file.stem}"
         spec = importlib.util.spec_from_file_location(module_name, file)
         module = importlib.util.module_from_spec(spec)
@@ -42,9 +42,9 @@ for dir_name in command_dirs:
 
 @bot.event
 async def on_ready():
-    from ticket.ticket import TicketPanelView
+    from Commands.ticket import TicketPanelView
     bot.add_view(TicketPanelView())
-    print(f"Bot ready as {bot.user}")
+    print(f"Ticket Bot ready as {bot.user}")
 
 if __name__ == "__main__":
     if not DISCORD_TOKEN:
