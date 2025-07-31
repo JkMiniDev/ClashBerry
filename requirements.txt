@@ -1,3 +1,6 @@
 disnake>=2.10.0
 python-dotenv
 aiohttp
+pymongo
+motor
+flask
