@@ -432,18 +432,27 @@ class TicketViewSelector(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if self.values[0] == "Profile Overview":
-            embed = PlayerEmbeds.player_info(self.player_data)
-        else:
-            embed = PlayerEmbeds.unit_embed(self.player_data)
-        
-        # Check if parent view has selected_accounts (multi-account view)
-        if hasattr(self.view, 'selected_accounts') and self.view.selected_accounts:
-            view = TicketProfileViewWithSwitcher(self.player_data, self.view.selected_accounts, current_view=self.values[0])
-        else:
-            view = TicketProfileView(self.player_data, current_view=self.values[0])
-        
-        await interaction.response.edit_message(embed=embed, view=view)
+        try:
+            # Defer the interaction immediately
+            await interaction.response.defer()
+            
+            if self.values[0] == "Profile Overview":
+                embed = PlayerEmbeds.player_info(self.player_data)
+            else:
+                embed = PlayerEmbeds.unit_embed(self.player_data)
+            
+            # Check if parent view has selected_accounts (multi-account view)
+            if hasattr(self.view, 'selected_accounts') and self.view.selected_accounts:
+                view = TicketProfileViewWithSwitcher(self.player_data, self.view.selected_accounts, current_view=self.values[0])
+            else:
+                view = TicketProfileView(self.player_data, current_view=self.values[0])
+            
+            await interaction.edit_original_response(embed=embed, view=view)
+        except discord.NotFound:
+            # Interaction already handled, ignore
+            pass
+        except Exception as e:
+            print(f"Error in TicketViewSelector callback: {e}")
 
 class TicketProfileView(discord.ui.View):
     def __init__(self, player_data, current_view="Profile Overview"):
@@ -835,36 +844,45 @@ class ProfileAccountSwitcher(discord.ui.Select):
         self.selected_accounts = selected_accounts
     
     async def callback(self, interaction: discord.Interaction):
-        selected_tag = self.values[0]
-        
-        # Find the selected account
-        selected_account = None
-        for account in self.selected_accounts:
-            if account["tag"] == selected_tag:
-                selected_account = account
-                break
-        
-        if not selected_account:
-            await interaction.response.send_message("Account not found.", ephemeral=True)
-            return
-        
-        # Get fresh player data for the selected account
-        player_data = await get_coc_player(selected_tag)
-        if player_data is None:
-            await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
-            return
-        
-        # Get Discord info for the player tag (same as players.py)
-        player_tag = player_data.get("tag", "")
-        discord_info = await get_discord_info_for_player(player_tag)
-        player_data["discord_info"] = discord_info
-        
-        # Update the view with new player data
-        if self.view.current_view == "Profile Overview":
-            new_embed = PlayerEmbeds.player_info(player_data)
-        else:
-            new_embed = PlayerEmbeds.unit_embed(player_data)
+        try:
+            # Defer the interaction immediately
+            await interaction.response.defer()
             
-        new_view = TicketProfileViewWithSwitcher(player_data, self.selected_accounts, self.view.current_view)
-        
-        await interaction.response.edit_message(embed=new_embed, view=new_view)
+            selected_tag = self.values[0]
+            
+            # Find the selected account
+            selected_account = None
+            for account in self.selected_accounts:
+                if account["tag"] == selected_tag:
+                    selected_account = account
+                    break
+            
+            if not selected_account:
+                await interaction.followup.send("Account not found.", ephemeral=True)
+                return
+            
+            # Get fresh player data for the selected account
+            player_data = await get_coc_player(selected_tag)
+            if player_data is None:
+                await interaction.followup.send("Failed to fetch player data for selected account.", ephemeral=True)
+                return
+            
+            # Get Discord info for the player tag (same as players.py)
+            player_tag = player_data.get("tag", "")
+            discord_info = await get_discord_info_for_player(player_tag)
+            player_data["discord_info"] = discord_info
+            
+            # Update the view with new player data
+            if self.view.current_view == "Profile Overview":
+                new_embed = PlayerEmbeds.player_info(player_data)
+            else:
+                new_embed = PlayerEmbeds.unit_embed(player_data)
+                
+            new_view = TicketProfileViewWithSwitcher(player_data, self.selected_accounts, self.view.current_view)
+            
+            await interaction.edit_original_response(embed=new_embed, view=new_view)
+        except discord.NotFound:
+            # Interaction already handled, ignore
+            pass
+        except Exception as e:
+            print(f"Error in ProfileAccountSwitcher callback: {e}")
