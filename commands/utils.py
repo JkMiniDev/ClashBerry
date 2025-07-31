@@ -96,13 +96,15 @@ def create_embed_from_data(embed_data, **kwargs):
     return embed
 
 async def show_profile(player_tag, interaction_user=None):
-    """Show player profile (placeholder for CoC API integration)"""
-    # For now, return a simple embed since we don't have CoC API integration yet
+    """Show simple player tag information"""
     embed = disnake.Embed(
-        title="Player Profile",
-        description=f"Player Tag: {player_tag}",
-        color=0x00ff00
+        title="🎮 Player Information",
+        description=f"**Player Tag:** {player_tag}\n**Discord User:** {interaction_user.mention if interaction_user else 'Unknown'}",
+        color=0x00ff00,
+        timestamp=disnake.utils.utcnow()
     )
+    embed.set_footer(text="Ticket created")
+    embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1234567890/clash-of-clans-icon.png")
     return embed
 
 # Color mapping for button styles
