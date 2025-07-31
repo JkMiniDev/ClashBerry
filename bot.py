@@ -11,9 +11,10 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 intents = disnake.Intents.default()
 intents.guilds = True
 intents.members = True
+intents.message_content = True  # Enable message content intent for better compatibility
 
 bot = commands.Bot(
-    command_prefix="!",
+    command_prefix=commands.when_mentioned_or("!"),  # Use mention prefix to avoid warnings
     intents=intents,
     activity=disnake.Activity(
         type=disnake.ActivityType.custom,
