@@ -13,7 +13,7 @@ def setup(bot):
                 "**/linkaccount**\nLink your account to your Discord.\n\n"
                 "**/war**\nShow current war info for a clan.\n\n"
                 "**/removeclan**\nRemove a clan linked to this server.\n\n"
-                "**/setup_ticket**\nSetup the clan application ticket panel.\n\n"
+        
                 "**/unlinkaccount**\nUnlink one of your linked accounts."
             ),
             color=disnake.Color.blurple()

@@ -1,28 +1,37 @@
 {
-  "server_id": "",
-  "ticket_channel_id": "",
-  "staff_role_id": "",
-  "category_id": "",
+  "server_id": "YOUR_SERVER_ID_HERE",
+  "ticket_channel_id": "YOUR_TICKET_CHANNEL_ID_HERE",
+  "staff_role_id": "YOUR_STAFF_ROLE_ID_HERE",
+  "category_id": "YOUR_CATEGORY_ID_HERE",
   "panel_embed_data": {
     "content": null,
     "embeds": [
       {
         "title": "🎟️ Clan Application",
-        "description": "Click the button below to create a ticket for clan application.",
-        "color": 3447003
+        "description": "Click the button below to create a ticket for clan application.\n\nPlease have your player tag ready!",
+        "color": 3447003,
+        "footer": {
+          "text": "Make sure you're eligible before applying!"
+        },
+        "thumbnail": {
+          "url": "https://i.imgur.com/your-image.png"
+        }
       }
     ]
   },
   "welcome_embed_data": {
-    "content": null,
+    "content": "Welcome to our clan application system!",
     "embeds": [
       {
-        "title": "Welcome to Clan Application",
-        "description": "Your ticket will be handled shortly by our staff team.",
-        "color": 65280
+        "title": "🎉 Welcome to Clan Application",
+        "description": "Thank you for your interest in joining our clan!\n\nYour application ticket has been created and our staff team will review it shortly.\n\n**What happens next?**\n• Staff will review your profile\n• You may be asked additional questions\n• We'll make a decision within 24 hours\n\n**Need help?** Feel free to ask any questions here!",
+        "color": 65280,
+        "footer": {
+          "text": "Please be patient while we review your application"
+        }
       }
     ]
   },
-  "button_label": "🎟️ Create Ticket",
+  "button_label": "🎟️ Apply to Clan",
   "button_color": "primary"
 }

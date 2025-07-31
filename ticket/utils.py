@@ -1,9 +1,6 @@
 import os
 import json
 import aiohttp
-import base64
-from urllib.parse import urlparse, parse_qs
-
 from dotenv import load_dotenv
 import disnake
 
@@ -26,17 +23,7 @@ def load_ticket_config():
         print(f"Error loading ticket_config.json: {str(e)}")
         return None
 
-def save_ticket_config(config_data):
-    """Save ticket configuration to JSON file"""
-    try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, 'config', 'ticket_config.json')
-        with open(config_path, 'w') as f:
-            json.dump(config_data, f, indent=2)
-        return True
-    except Exception as e:
-        print(f"Error saving ticket_config.json: {str(e)}")
-        return False
+
 
 # Load max_lvl.json using absolute path
 try:
@@ -448,36 +435,7 @@ async def get_ticket_config():
     print(f"get_ticket_config: No configuration data found")
     return None
 
-async def save_ticket_settings(server_id=None, ticket_channel_id=None, staff_role_id=None, category_id=None, panel_embed_data=None, welcome_embed_data=None, button_label=None, button_color=None):
-    """Save ticket settings to JSON file"""
-    try:
-        config = load_ticket_config() or {}
-        
-        # Update only the provided fields
-        if server_id is not None:
-            config["server_id"] = str(server_id)
-        if ticket_channel_id is not None:
-            config["ticket_channel_id"] = str(ticket_channel_id)
-        if staff_role_id is not None:
-            config["staff_role_id"] = str(staff_role_id)
-        if category_id is not None:
-            config["category_id"] = str(category_id)
-        if panel_embed_data is not None:
-            config["panel_embed_data"] = panel_embed_data
-        if welcome_embed_data is not None:
-            config["welcome_embed_data"] = welcome_embed_data
-        if button_label is not None:
-            config["button_label"] = button_label
-        if button_color is not None:
-            config["button_color"] = button_color
-        
-        success = save_ticket_config(config)
-        if success:
-            print(f"save_ticket_settings: Configuration saved successfully")
-        return success
-    except Exception as e:
-        print(f"Error saving ticket settings: {e}")
-        return False
+
 
 async def get_staff_role(guild):
     """Get staff role from configuration"""
@@ -628,52 +586,7 @@ async def send_ticket_panel_on_startup(bot):
         print(f"send_ticket_panel_on_startup: Error sending ticket panel: {e}")
         return False
 
-async def parse_discohook_link(link):
-    """Parse Discohook link and return embed data"""
-    try:
-        parsed = urlparse(link)
-        query = parse_qs(parsed.query)
 
-        # Case 1: ?share=ID
-        if "share" in query:
-            share_id = query["share"][0]
-            url = f"https://discohook.app/api/v1/share/{share_id}"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)"
-            }
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        print(f"parse_discohook_link: Failed to fetch share link {url}, status={resp.status}")
-                        return None
-                    data = await resp.json()
-            data = data.get("data", {}).get("messages", [{}])[0].get("data", {})
-            content = data.get("content", None)
-            embeds = data.get("embeds", [])
-
-        # Case 2: ?data=base64
-        elif "data" in query:
-            base64_data = query["data"][0]
-            base64_data = base64_data + "=" * ((4 - len(base64_data) % 4) % 4)
-            decoded = base64.b64decode(base64_data).decode("utf-8")
-            raw_data = json.loads(decoded)
-            data = raw_data.get("messages", [{}])[0].get("data", {})
-            content = data.get("content", None)
-            embeds = data.get("embeds", [])
-
-        else:
-            print(f"parse_discohook_link: Invalid Discohook link format: {link}")
-            return None
-
-        print(f"parse_discohook_link: Successfully parsed link {link}")
-        return {
-            "content": content,
-            "embeds": embeds
-        }
-
-    except Exception as e:
-        print(f"Error parsing Discohook link {link}: {e}")
-        return None
 
 async def get_coc_player(player_tag):
     """Fetch Clash of Clans player data"""
