@@ -402,15 +402,7 @@ def setup(bot):
             f"✅ Configuration for panel '{name}' updated successfully!\n" + "\n".join(updates),
             ephemeral=True
         )
-    # Add autocomplete for panel name parameters
-    @ticket_panel_command.autocomplete('name')
-    async def ticket_panel_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await panel_autocomplete(interaction, current)
-    
-    @ticket_post_command.autocomplete('name') 
-    async def ticket_post_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await panel_autocomplete(interaction, current)
-    
-    @ticket_settings_command.autocomplete('name')
-    async def ticket_settings_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await panel_autocomplete(interaction, current)
+    # Attach autocomplete to ticket commands
+    ticket_panel_command.autocomplete("name")(panel_autocomplete)
+    ticket_post_command.autocomplete("name")(panel_autocomplete)
+    ticket_settings_command.autocomplete("name")(panel_autocomplete)

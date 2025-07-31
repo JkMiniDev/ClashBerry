@@ -45,7 +45,7 @@ def setup(bot):
         user_data = await get_linked_players(str(interaction.user.id))
         accounts = user_data.get("verified", []) + user_data.get("unverified", [])
         return [
-            disnake.disnake.OptionChoice(
+            disnake.OptionChoice(
                 name=f"{acc.get('name', acc.get('tag', 'Unknown'))} ({acc.get('tag', 'Unknown')})",
                 value=acc.get('tag', '')
             )
@@ -91,7 +91,5 @@ def setup(bot):
         )
         await interaction.followup.send(embed=embed)
     
-    # Add autocomplete for the tag parameter
-    @unlinkaccount_command.autocomplete("tag")
-    async def unlink_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await player_tag_autocomplete(interaction, current)
+    # Attach autocomplete to the unlinkaccount command
+    unlinkaccount_command.autocomplete("tag")(player_tag_autocomplete)

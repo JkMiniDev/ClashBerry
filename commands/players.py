@@ -524,7 +524,7 @@ def setup(bot):
     async def player_tag_autocomplete(interaction: disnake.ApplicationCommandInteraction, current: str):
         accounts = await get_linked_players(str(interaction.user.id))
         return [
-            disnake.disnake.OptionChoice(
+            disnake.OptionChoice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -557,7 +557,5 @@ def setup(bot):
         embed = PlayerEmbeds.player_info(player_data)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     
-    # Add autocomplete for the tag parameter
-    @player_command.autocomplete("tag")
-    async def player_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await player_tag_autocomplete(interaction, current)
+    # Attach autocomplete to the player command
+    player_command.autocomplete("tag")(player_tag_autocomplete)

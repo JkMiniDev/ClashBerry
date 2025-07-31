@@ -506,7 +506,7 @@ def setup(bot):
         data = await get_linked_clans(str(interaction.guild.id))
         clans = data.get("clans", [])
         return [
-            disnake.disnake.OptionChoice(
+            disnake.OptionChoice(
                 name=f"{clan['name']} ({clan['tag']})",
                 value=clan['tag']
             )
@@ -540,7 +540,5 @@ def setup(bot):
         view = WarView(war_data, war_type, current="overview")
         await interaction.followup.send(embed=embed, view=view)
     
-    # Add autocomplete for the tag parameter
-    @war_command.autocomplete("tag")
-    async def war_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await clan_tag_autocomplete(interaction, current)
+    # Attach autocomplete to the war command
+    war_command.autocomplete("tag")(clan_tag_autocomplete)

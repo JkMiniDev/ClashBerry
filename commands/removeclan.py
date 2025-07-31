@@ -55,7 +55,7 @@ def setup(bot):
             clan_name = clan_data.get("name", clan['tag']) if clan_data else clan['tag']
             options.append({"name": clan_name, "tag": clan['tag']})
         return [
-            disnake.disnake.OptionChoice(
+            disnake.OptionChoice(
                 name=f"{acc['name']} ({acc['tag']})",
                 value=acc['tag']
             )
@@ -111,16 +111,5 @@ def setup(bot):
         )
         await interaction.followup.send(embed=embed)
     
-    # Add autocomplete for the tag parameter
-    @removeclan_command.autocomplete("tag")
-    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await clan_tag_autocomplete(interaction, current)    
-    # Add autocomplete for the tag parameter
-    @removeclan_command.autocomplete("tag")
-    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await clan_tag_autocomplete(interaction, current)
-
-    # Add autocomplete for the tag parameter
-    @removeclan_command.autocomplete('tag')
-    async def remove_clan_tag_autocomplete_wrapper(interaction: disnake.ApplicationCommandInteraction, current: str):
-        return await clan_tag_autocomplete(interaction, current)
+    # Attach autocomplete to the removeclan command
+    removeclan_command.autocomplete("tag")(clan_tag_autocomplete)
