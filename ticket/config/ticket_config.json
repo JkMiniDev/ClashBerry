@@ -1,8 +1,8 @@
 {
-  "server_id": "YOUR_SERVER_ID_HERE",
-  "ticket_channel_id": "YOUR_TICKET_CHANNEL_ID_HERE",
-  "staff_role_id": "YOUR_STAFF_ROLE_ID_HERE",
-  "category_id": "YOUR_CATEGORY_ID_HERE",
+  "server_id": "1398998336337608745",
+  "ticket_channel_id": "1398998336337608749",
+  "staff_role_id": "1400301351535251589",
+  "category_id": "1398998336337608747",
   "panel_embed_data": {
     "content": "🏰 **Welcome to Our Clan Recruitment Portal** 🏰\n\nReady to join one of the most active and successful clans? Apply now!",
     "embeds": [
@@ -11,37 +11,8 @@
         "description": "**Are you ready to join the elite?**\n\nWe're looking for dedicated players who are passionate about Clash of Clans and ready to contribute to our clan's success!\n\n🏆 **What we offer:**\n• Active donations 24/7\n• Max clan games rewards\n• Competitive war environment\n• Friendly and supportive community\n• Expert attack strategies and coaching\n\n📋 **Requirements:**\n• Town Hall 12+ with decent heroes\n• Active daily player\n• Must participate in clan wars\n• Respectful and team-oriented\n• English speaking\n\n💎 **Clan Stats:**\n• Level: 15+\n• War Win Rate: 85%+\n• Location: International\n• Members: 45/50\n\n**Ready to apply? Click the button below and have your player tag ready!**",
         "color": 16744192,
         "footer": {
-          "text": "Make sure you meet our requirements before applying! • Applications reviewed within 24h",
-          "icon_url": "https://cdn.discordapp.com/emojis/1234567890123456789.png"
-        },
-        "thumbnail": {
-          "url": "https://i.imgur.com/clan-logo.png"
-        },
-        "image": {
-          "url": "https://i.imgur.com/clan-banner.png"
-        },
-        "author": {
-          "name": "Elite Warriors Recruitment",
-          "icon_url": "https://i.imgur.com/crown-icon.png"
-        },
-        "fields": [
-          {
-            "name": "🏆 Clan Level",
-            "value": "15",
-            "inline": true
-          },
-          {
-            "name": "⚔️ War Wins",
-            "value": "450+",
-            "inline": true
-          },
-          {
-            "name": "🌟 Clan League",
-            "value": "Crystal I",
-            "inline": true
-          }
-        ],
-        "timestamp": "2024-01-01T12:00:00.000Z"
+          "text": "Make sure you meet our requirements before applying! • Applications reviewed within 24h"
+        }
       }
     ]
   },
@@ -53,29 +24,8 @@
         "description": "**Greetings, future warrior!**\n\nYour clan application has been received and our recruitment team will review it shortly. We're excited to potentially welcome you to our clan family!\n\n📋 **What happens next?**\n• Our staff will review your player profile\n• We may ask additional questions about your playstyle\n• You'll receive a decision within 24 hours\n• If accepted, you'll get an invite to our clan\n\n🔍 **During the review process:**\n• Please keep your player profile public\n• Stay active in-game\n• Feel free to ask any questions here\n• Our staff may provide feedback or suggestions\n\n⏰ **Response Time:** Usually within 2-12 hours\n📱 **Questions?** Our staff team is here to help!\n\n**Good luck with your application!** 🍀",
         "color": 5763719,
         "footer": {
-          "text": "Elite Warriors Clan • Est. 2020 • Thanks for choosing us!",
-          "icon_url": "https://i.imgur.com/clan-logo-small.png"
-        },
-        "thumbnail": {
-          "url": "https://i.imgur.com/welcome-icon.png"
-        },
-        "author": {
-          "name": "Elite Warriors Recruitment Team",
-          "icon_url": "https://i.imgur.com/staff-icon.png"
-        },
-        "fields": [
-          {
-            "name": "📞 Need Help?",
-            "value": "Tag our staff members or ask questions here",
-            "inline": false
-          },
-          {
-            "name": "⭐ Pro Tip",
-            "value": "Keep your base and troops upgraded while we review!",
-            "inline": false
-          }
-        ],
-        "timestamp": "2024-01-01T12:00:00.000Z"
+          "text": "Elite Warriors Clan • Est. 2020 • Thanks for choosing us!"
+        }
       }
     ]
   },
