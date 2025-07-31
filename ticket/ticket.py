@@ -33,19 +33,23 @@ class TicketButton(disnake.ui.Button):
         await interaction.response.send_modal(TagModal(staff_role_id, normalized_username))
 
 class TagModal(disnake.ui.Modal):
-    tag = disnake.ui.TextInput(
-        label="Player Tag",
-        placeholder="e.g. #2Q82LRL",
-        required=True,
-        min_length=5,
-        max_length=15,
-        custom_id="player_tag"
-    )
-
     def __init__(self, staff_role_id, username):
-        super().__init__(title="Enter In-game Tag")
         self.staff_role_id = staff_role_id
         self.username = username
+        
+        self.tag = disnake.ui.TextInput(
+            label="Player Tag",
+            placeholder="e.g. #2Q82LRL",
+            required=True,
+            min_length=5,
+            max_length=15,
+            custom_id="player_tag"
+        )
+        
+        super().__init__(
+            title="Enter In-game Tag",
+            components=[self.tag]
+        )
 
     async def on_submit(self, interaction: disnake.ApplicationCommandInteraction):
         from .utils import get_coc_player
