@@ -43,8 +43,17 @@ for dir_name in command_dirs:
 @bot.event
 async def on_ready():
     from ticket.ticket import TicketPanelView
+    from ticket.utils import send_ticket_panel_on_startup
+    
     bot.add_view(TicketPanelView())
     print(f"Bot ready as {bot.user}")
+    
+    # Send ticket panel to configured channel
+    panel_sent = await send_ticket_panel_on_startup(bot)
+    if panel_sent:
+        print("Ticket panel sent successfully on startup")
+    else:
+        print("Failed to send ticket panel on startup - check configuration")
 
 if __name__ == "__main__":
     if not DISCORD_TOKEN:

@@ -3,24 +3,40 @@ import json
 import aiohttp
 import base64
 from urllib.parse import urlparse, parse_qs
-from motor.motor_asyncio import AsyncIOMotorClient
+
 from dotenv import load_dotenv
 import disnake
 
 load_dotenv()
 
 COC_API_TOKEN = os.getenv("API_TOKEN")
-MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DATABASE = os.getenv("MONGODB_DATABASE") or "default_database"
 
-# Initialize MongoDB client only if database name is set
-if MONGODB_DATABASE:
-    mongodb_client = AsyncIOMotorClient(MONGODB_URI)
-    db = mongodb_client[MONGODB_DATABASE]
-else:
-    print("Warning: MONGODB_DATABASE environment variable is not set")
-    mongodb_client = None
-    db = None
+# Load ticket configuration from JSON file
+def load_ticket_config():
+    """Load ticket configuration from JSON file"""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, 'config', 'ticket_config.json')
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error: 'ticket_config.json' not found")
+        return None
+    except Exception as e:
+        print(f"Error loading ticket_config.json: {str(e)}")
+        return None
+
+def save_ticket_config(config_data):
+    """Save ticket configuration to JSON file"""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, 'config', 'ticket_config.json')
+        with open(config_path, 'w') as f:
+            json.dump(config_data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving ticket_config.json: {str(e)}")
+        return False
 
 # Load max_lvl.json using absolute path
 try:
@@ -423,145 +439,193 @@ class TicketProfileView(disnake.ui.View):
 
         self.add_item(TicketViewSelector(player_data, current_view))
 
-async def get_guild_data(guild_id, panel_name=None):
-    """Get guild data from MongoDB, optionally filter by panel name"""
-    if db is None:
-        print("Error: MongoDB not initialized. Check environment variables.")
-        return None
-    
+async def get_ticket_config():
+    """Get ticket configuration data from JSON file"""
+    config = load_ticket_config()
+    if config:
+        print(f"get_ticket_config: Found configuration data")
+        return config
+    print(f"get_ticket_config: No configuration data found")
+    return None
+
+async def save_ticket_settings(server_id=None, ticket_channel_id=None, staff_role_id=None, category_id=None, panel_embed_data=None, welcome_embed_data=None, button_label=None, button_color=None):
+    """Save ticket settings to JSON file"""
     try:
-        guild_settings_collection = db.guild_settings
-        query = {"guild_id": str(guild_id)}
-        if panel_name:
-            query["panel_name"] = panel_name
+        config = load_ticket_config() or {}
         
-        result = await guild_settings_collection.find_one(query)
-        if result:
-            print(f"get_guild_data: Found data for guild_id={guild_id}, panel_name={panel_name}: {result}")
-            return result
-        print(f"get_guild_data: No data found for guild_id={guild_id}, panel_name={panel_name}")
-        return None
+        # Update only the provided fields
+        if server_id is not None:
+            config["server_id"] = str(server_id)
+        if ticket_channel_id is not None:
+            config["ticket_channel_id"] = str(ticket_channel_id)
+        if staff_role_id is not None:
+            config["staff_role_id"] = str(staff_role_id)
+        if category_id is not None:
+            config["category_id"] = str(category_id)
+        if panel_embed_data is not None:
+            config["panel_embed_data"] = panel_embed_data
+        if welcome_embed_data is not None:
+            config["welcome_embed_data"] = welcome_embed_data
+        if button_label is not None:
+            config["button_label"] = button_label
+        if button_color is not None:
+            config["button_color"] = button_color
+        
+        success = save_ticket_config(config)
+        if success:
+            print(f"save_ticket_settings: Configuration saved successfully")
+        return success
     except Exception as e:
-        print(f"Error fetching guild data for guild_id={guild_id}, panel_name={panel_name}: {e}")
-        return None
+        print(f"Error saving ticket settings: {e}")
+        return False
 
-async def get_panel_names(guild_id):
-    """Get list of panel names for a guild (for autocomplete)"""
-    if db is None:
-        print("Error: MongoDB not initialized. Check environment variables.")
-        return []
-    
-    try:
-        guild_settings_collection = db.guild_settings
-        cursor = guild_settings_collection.find({"guild_id": str(guild_id)})
-        panel_names = []
-        async for document in cursor:
-            if "panel_name" in document:
-                panel_names.append(document["panel_name"])
-        print(f"get_panel_names: Found panel names for guild_id={guild_id}: {panel_names}")
-        return panel_names
-    except Exception as e:
-        print(f"Error fetching panel names for guild_id={guild_id}: {e}")
-        return []
-
-async def save_guild_data(guild_id, panel_name, staff_role_id=None, category_id=None, panel_embed_data=None, welcome_embed_data=None, button_label=None, button_color=None):
-    """Save guild and panel data to MongoDB"""
-    if db is None:
-        print("Error: MongoDB not initialized. Check environment variables.")
-        return
-    
-    try:
-        guild_settings_collection = db.guild_settings
-        data = {
-            "guild_id": str(guild_id),
-            "panel_name": panel_name,
-            "staff_role_id": staff_role_id,
-            "category_id": category_id,
-            "panel_embed_data": panel_embed_data,
-            "welcome_embed_data": welcome_embed_data,
-            "button_label": button_label,
-            "button_color": button_color
-        }
-        print(f"save_guild_data: Saving data for guild_id={guild_id}, panel_name={panel_name}: {data}")
-
-        # Use upsert to update existing or insert new record
-        await guild_settings_collection.replace_one(
-            {"guild_id": str(guild_id), "panel_name": panel_name}, 
-            data, 
-            upsert=True
-        )
-        print(f"save_guild_data: Saved record for guild_id={guild_id}, panel_name={panel_name}")
-    except Exception as e:
-        print(f"Error saving guild data for guild_id={guild_id}: {e}")
-
-async def get_staff_role(guild, panel_name=None):
-    """Get staff role from guild data, optionally filter by panel name"""
-    guild_data = await get_guild_data(guild.id, panel_name)
-    if guild_data and guild_data.get("staff_role_id"):
-        role = guild.get_role(int(guild_data["staff_role_id"]))
+async def get_staff_role(guild):
+    """Get staff role from configuration"""
+    config = await get_ticket_config()
+    if config and config.get("staff_role_id"):
+        role = guild.get_role(int(config["staff_role_id"]))
         if role:
-            print(f"get_staff_role: Found staff role {role.name} (ID: {guild_data['staff_role_id']}) for guild_id={guild.id}, panel_name={panel_name}")
+            print(f"get_staff_role: Found staff role {role.name} (ID: {config['staff_role_id']})")
             return role
         else:
-            print(f"get_staff_role: Role ID {guild_data['staff_role_id']} not found in guild_id={guild.id}")
+            print(f"get_staff_role: Role ID {config['staff_role_id']} not found in guild")
     else:
-        print(f"get_staff_role: No staff_role_id found for guild_id={guild.id}, panel_name={panel_name}")
+        print(f"get_staff_role: No staff_role_id found in configuration")
     return None
 
-async def get_category_id(guild, panel_name=None):
-    """Get category ID from guild data, optionally filter by panel name"""
-    guild_data = await get_guild_data(guild.id, panel_name)
-    if guild_data:
-        category_id = guild_data.get("category_id")
-        print(f"get_category_id: Found category_id={category_id} for guild_id={guild.id}, panel_name={panel_name}")
+async def get_category_id():
+    """Get category ID from configuration"""
+    config = await get_ticket_config()
+    if config:
+        category_id = config.get("category_id")
+        print(f"get_category_id: Found category_id={category_id}")
         return category_id
-    print(f"get_category_id: No category_id found for guild_id={guild.id}, panel_name={panel_name}")
+    print(f"get_category_id: No category_id found in configuration")
     return None
 
-async def get_welcome_embed_data(guild_id, panel_name=None):
-    """Get welcome embed data from MongoDB"""
-    guild_data = await get_guild_data(guild_id, panel_name)
-    if guild_data:
-        print(f"get_welcome_embed_data: Found welcome embed data for guild_id={guild_id}, panel_name={panel_name}")
-        return guild_data.get("welcome_embed_data")
-    print(f"get_welcome_embed_data: No welcome embed data for guild_id={guild_id}, panel_name={panel_name}")
+async def get_welcome_embed_data():
+    """Get welcome embed data from configuration"""
+    config = await get_ticket_config()
+    if config:
+        print(f"get_welcome_embed_data: Found welcome embed data")
+        return config.get("welcome_embed_data")
+    print(f"get_welcome_embed_data: No welcome embed data found")
     return None
 
-async def get_panel_embed_data(guild_id, panel_name):
-    """Get panel embed data from MongoDB"""
-    guild_data = await get_guild_data(guild_id, panel_name)
-    if guild_data:
-        print(f"get_panel_embed_data: Found panel embed data for guild_id={guild_id}, panel_name={panel_name}")
-        return guild_data.get("panel_embed_data")
-    print(f"get_panel_embed_data: No panel embed data for guild_id={guild_id}, panel_name={panel_name}")
+async def get_panel_embed_data():
+    """Get panel embed data from configuration"""
+    config = await get_ticket_config()
+    if config:
+        print(f"get_panel_embed_data: Found panel embed data")
+        return config.get("panel_embed_data")
+    print(f"get_panel_embed_data: No panel embed data found")
     return None
 
-async def get_button_data(guild_id, panel_name):
-    """Get button label and color from MongoDB"""
-    guild_data = await get_guild_data(guild_id, panel_name)
-    if guild_data:
-        print(f"get_button_data: Found button data for guild_id={guild_id}, panel_name={panel_name}: label={guild_data.get('button_label')}, color={guild_data.get('button_color')}")
-        return guild_data.get("button_label"), guild_data.get("button_color")
-    print(f"get_button_data: No button data for guild_id={guild_id}, panel_name={panel_name}")
+async def get_button_data():
+    """Get button label and color from configuration"""
+    config = await get_ticket_config()
+    if config:
+        button_label = config.get("button_label")
+        button_color = config.get("button_color")
+        print(f"get_button_data: Found button data: label={button_label}, color={button_color}")
+        return button_label, button_color
+    print(f"get_button_data: No button data found")
     return None, None
 
-async def delete_guild_data(guild_id, panel_name=None):
-    """Delete guild or panel data from MongoDB"""
-    if db is None:
-        print("Error: MongoDB not initialized. Check environment variables.")
-        return False
+async def get_ticket_channel_id():
+    """Get ticket channel ID from configuration"""
+    config = await get_ticket_config()
+    if config:
+        channel_id = config.get("ticket_channel_id")
+        print(f"get_ticket_channel_id: Found channel_id={channel_id}")
+        return channel_id
+    print(f"get_ticket_channel_id: No channel_id found")
+    return None
+
+async def get_server_id():
+    """Get server ID from configuration"""
+    config = await get_ticket_config()
+    if config:
+        server_id = config.get("server_id")
+        print(f"get_server_id: Found server_id={server_id}")
+        return server_id
+    print(f"get_server_id: No server_id found")
+    return None
+
+async def send_ticket_panel_on_startup(bot):
+    """Send ticket panel to configured channel on bot startup"""
+    import disnake
+    from .ticket import TicketPanelView
     
     try:
-        guild_settings_collection = db.guild_settings
-        query = {"guild_id": str(guild_id)}
-        if panel_name:
-            query["panel_name"] = panel_name
+        # Get configuration
+        config = await get_ticket_config()
+        if not config:
+            print("send_ticket_panel_on_startup: No configuration found")
+            return False
         
-        result = await guild_settings_collection.delete_many(query)
-        print(f"delete_guild_data: Deleted {result.deleted_count} document(s) for guild_id={guild_id}, panel_name={panel_name}")
+        server_id = config.get("server_id")
+        ticket_channel_id = config.get("ticket_channel_id")
+        
+        if not server_id or not ticket_channel_id:
+            print("send_ticket_panel_on_startup: Server ID or ticket channel ID not configured")
+            return False
+        
+        # Get guild and channel
+        guild = bot.get_guild(int(server_id))
+        if not guild:
+            print(f"send_ticket_panel_on_startup: Guild {server_id} not found")
+            return False
+        
+        channel = guild.get_channel(int(ticket_channel_id))
+        if not channel:
+            print(f"send_ticket_panel_on_startup: Channel {ticket_channel_id} not found")
+            return False
+        
+        # Check if staff role is configured
+        staff_role = await get_staff_role(guild)
+        if not staff_role:
+            print("send_ticket_panel_on_startup: Staff role not configured")
+            return False
+        
+        # Get panel data
+        panel_embed_data = await get_panel_embed_data()
+        if not panel_embed_data:
+            print("send_ticket_panel_on_startup: Panel embed data not found")
+            return False
+        
+        # Get button data
+        button_label, button_color = await get_button_data()
+        button_style = disnake.ButtonStyle.primary
+        if button_color == "success":
+            button_style = disnake.ButtonStyle.success
+        elif button_color == "danger":
+            button_style = disnake.ButtonStyle.danger
+        elif button_color == "secondary":
+            button_style = disnake.ButtonStyle.secondary
+        
+        # Create embeds
+        panel_embeds = [disnake.Embed.from_dict(e) for e in panel_embed_data.get("embeds", [])]
+        panel_content = panel_embed_data.get("content")
+        
+        # Send panel
+        if panel_embeds:
+            await channel.send(
+                content=panel_content,
+                embeds=panel_embeds,
+                view=TicketPanelView(button_label, button_style)
+            )
+        else:
+            await channel.send(
+                content=panel_content or "Ticket Panel",
+                view=TicketPanelView(button_label, button_style)
+            )
+        
+        print(f"send_ticket_panel_on_startup: Ticket panel sent successfully to {channel.name}")
         return True
+        
     except Exception as e:
-        print(f"Error deleting guild data for guild_id={guild_id}, panel_name={panel_name}: {e}")
+        print(f"send_ticket_panel_on_startup: Error sending ticket panel: {e}")
         return False
 
 async def parse_discohook_link(link):
