@@ -139,9 +139,6 @@ class TicketActionsView(discord.ui.View):
 
     @discord.ui.button(label="Player Account", style=discord.ButtonStyle.primary, custom_id="profile_button")
     async def profile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.name.lower() != self.username:
-            await interaction.response.send_message("Only the ticket creator can view the profile.", ephemeral=True)
-            return
         await show_profile(interaction, self.player_data)
 
     @discord.ui.button(label="Delete Ticket", style=discord.ButtonStyle.danger, custom_id="delete_ticket")
