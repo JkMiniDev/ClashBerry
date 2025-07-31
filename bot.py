@@ -43,8 +43,14 @@ for dir_name in command_dirs:
 @bot.event
 async def on_ready():
     from ticket.ticket import TicketPanelView
+    from ticket.utils import send_ticket_panel
+    
     bot.add_view(TicketPanelView())
     await bot.tree.sync()
+    
+    # Send ticket panel to configured channel
+    await send_ticket_panel(bot)
+    
     print(f"Bot ready as {bot.user}")
 
 if __name__ == "__main__":
