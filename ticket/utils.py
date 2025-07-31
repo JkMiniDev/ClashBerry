@@ -568,12 +568,13 @@ async def get_coc_player(player_tag):
                 print(f"get_coc_player: Failed to fetch player data for tag {player_tag}, status={resp.status}")
                 return None
 
-async def show_profile(interaction, player_data, selected_accounts=None, ticket_creator_id=None):
+async def show_profile(interaction, player_data, selected_accounts=None):
     """Display enhanced Clash of Clans player profile with dropdown menu"""
-    # Add Discord user info to player data (use ticket creator if provided, otherwise current user)
+    # Get Discord info for the player tag (same as players.py)
     player_data_with_discord = player_data.copy()
-    discord_user_id = ticket_creator_id if ticket_creator_id else interaction.user.id
-    player_data_with_discord["discord_info"] = f"<@{discord_user_id}>"
+    player_tag = player_data.get("tag", "")
+    discord_info = await get_discord_info_for_player(player_tag)
+    player_data_with_discord["discord_info"] = discord_info
     
     embed = PlayerEmbeds.player_info(player_data_with_discord)
     
@@ -771,6 +772,31 @@ async def get_linked_accounts(discord_id):
         print(f"Error fetching linked accounts for user {discord_id}: {e}")
         return []
 
+async def get_discord_info_for_player(player_tag):
+    """Get Discord info for a specific player tag (same as players.py)"""
+    if accounts_db is None:
+        print("Error: MongoDB not initialized for linked accounts")
+        return "Not Linked"
+    
+    try:
+        linked_players_collection = accounts_db.linked_players
+        cursor = linked_players_collection.find({})
+        async for record in cursor:
+            verified_tags = [acc.get("tag") for acc in record.get("verified", [])]
+            unverified_tags = [acc.get("tag") for acc in record.get("unverified", [])]
+            
+            if player_tag in verified_tags:
+                discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
+                verified_emoji = "<:Verified:1390721846420439051>"
+                return f"{discord_id} {verified_emoji}"
+            elif player_tag in unverified_tags:
+                discord_id = f"<@{record.get('discord_id', 'Not Linked')}>"
+                return discord_id
+        return "Not Linked"
+    except Exception as e:
+        print(f"Error querying MongoDB for linked player: {str(e)}")
+        return "Not Linked"
+
 class TicketProfileViewWithSwitcher(discord.ui.View):
     def __init__(self, player_data, selected_accounts, current_view="Profile Overview"):
         super().__init__(timeout=None)
@@ -828,19 +854,10 @@ class ProfileAccountSwitcher(discord.ui.Select):
             await interaction.response.send_message("Failed to fetch player data for selected account.", ephemeral=True)
             return
         
-        # Get ticket creator's Discord ID from channel name  
-        ticket_creator_id = None
-        channel_name = interaction.channel.name
-        if channel_name.startswith("ticket-"):
-            # Find the ticket creator from the channel
-            async for message in interaction.channel.history(limit=50, oldest_first=True):
-                if message.author.bot and message.pinned and message.mentions:
-                    ticket_creator_id = message.mentions[0].id
-                    break
-        
-        # Add Discord user info to player data
-        discord_user_id = ticket_creator_id if ticket_creator_id else interaction.user.id
-        player_data["discord_info"] = f"<@{discord_user_id}>"
+        # Get Discord info for the player tag (same as players.py)
+        player_tag = player_data.get("tag", "")
+        discord_info = await get_discord_info_for_player(player_tag)
+        player_data["discord_info"] = discord_info
         
         # Update the view with new player data
         if self.view.current_view == "Profile Overview":
