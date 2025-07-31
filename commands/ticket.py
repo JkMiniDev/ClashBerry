@@ -159,9 +159,6 @@ class TicketActionsView(disnake.ui.View):
 
     @disnake.ui.button(label="Player Account", style=disnake.ButtonStyle.primary, custom_id="profile_button")
     async def profile(self, interaction: disnake.ApplicationCommandInteraction, button: disnake.ui.Button):
-        if interaction.user.name.lower() != self.username:
-            await interaction.response.send_message("Only the ticket creator can view the profile.", ephemeral=True)
-            return
         from .utils import show_profile
         await show_profile(interaction, self.player_data)
 
