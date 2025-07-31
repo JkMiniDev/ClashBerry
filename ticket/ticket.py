@@ -11,8 +11,13 @@ class TicketButton(discord.ui.Button):
         super().__init__(label=label, style=style, custom_id="create_ticket")
 
     async def callback(self, interaction: discord.Interaction):
-        # Defer immediately to prevent timeout
-        await interaction.response.defer(ephemeral=True)
+        try:
+            # Check if interaction is already handled
+            if interaction.response.is_done():
+                return
+            
+            # Defer immediately to prevent timeout
+            await interaction.response.defer(ephemeral=True)
         
         config = get_config()
         
