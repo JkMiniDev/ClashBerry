@@ -23,8 +23,8 @@ bot = commands.Bot(
     status=disnake.Status.online
 )
 
-# Load commands from Commands directory (ticket bot)
-command_dirs = ["Commands"]
+# Load commands from commands directory (ticket bot)
+command_dirs = ["commands"]
 for dir_name in command_dirs:
     commands_dir = pathlib.Path(__file__).parent / dir_name
     if not commands_dir.exists():
@@ -32,7 +32,7 @@ for dir_name in command_dirs:
     for file in commands_dir.glob("*.py"):
         if file.name.startswith("_"):
             continue
-        # Module name includes directory for uniqueness (e.g. Commands.ticket)
+        # Module name includes directory for uniqueness (e.g. commands.ticket)
         module_name = f"{dir_name}.{file.stem}"
         spec = importlib.util.spec_from_file_location(module_name, file)
         module = importlib.util.module_from_spec(spec)
@@ -42,7 +42,7 @@ for dir_name in command_dirs:
 
 @bot.event
 async def on_ready():
-    from Commands.ticket import TicketPanelView
+    from commands.ticket import TicketPanelView
     bot.add_view(TicketPanelView())
     print(f"Ticket Bot ready as {bot.user}")
 
