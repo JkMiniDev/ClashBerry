@@ -577,7 +577,7 @@ async def get_coc_player(player_tag):
                 print(f"get_coc_player: Failed to fetch player data for tag {player_tag}, status={resp.status}")
                 return None
 
-async def show_profile(interaction, player_data, selected_accounts=None):
+async def show_profile(interaction, player_data, selected_accounts=None, selected_accounts_th_data=None):
     """Display enhanced Clash of Clans player profile with dropdown menu"""
     # Get Discord info for the player tag (same as players.py)
     player_data_with_discord = player_data.copy()
@@ -589,7 +589,7 @@ async def show_profile(interaction, player_data, selected_accounts=None):
     
     # If multiple selected accounts, add account switcher to the profile view
     if selected_accounts and len(selected_accounts) > 1:
-        view = TicketProfileViewWithSwitcher(player_data_with_discord, selected_accounts)
+        view = TicketProfileViewWithSwitcher(player_data_with_discord, selected_accounts, selected_accounts_th_data)
     else:
         view = TicketProfileView(player_data_with_discord)
     
@@ -807,30 +807,38 @@ async def get_discord_info_for_player(player_tag):
         return "Not Linked"
 
 class TicketProfileViewWithSwitcher(discord.ui.View):
-    def __init__(self, player_data, selected_accounts, current_view="Profile Overview"):
+    def __init__(self, player_data, selected_accounts, selected_accounts_th_data=None, current_view="Profile Overview"):
         super().__init__(timeout=None)
         self.player_data = player_data
         self.player_tag = player_data.get("tag", "")
         self.current_view = current_view
         self.selected_accounts = selected_accounts
+        self.selected_accounts_th_data = selected_accounts_th_data or {}
 
         # Add the regular view selector first (row 0)
         self.add_item(TicketViewSelector(player_data, current_view))
         # Then add account switcher dropdown below (row 1)
-        self.add_item(ProfileAccountSwitcher(selected_accounts, player_data))
+        self.add_item(ProfileAccountSwitcher(selected_accounts, player_data, self.selected_accounts_th_data))
 
 class ProfileAccountSwitcher(discord.ui.Select):
-    def __init__(self, selected_accounts, current_player_data):
+    def __init__(self, selected_accounts, current_player_data, account_th_data=None):
         current_tag = current_player_data.get("tag", "")
         
         # Create options from selected accounts only
         options = []
         for account in selected_accounts[:25]:  # Discord limit of 25 options
             is_current = account["tag"] == current_tag
+            
+            # Get town hall emoji for this account
+            th_emoji = "🏰"  # Default
+            if account_th_data and account["tag"] in account_th_data:
+                th_level = str(account_th_data[account["tag"]])
+                th_emoji = EMOJI_MAP.get(f"TH{th_level}", "🏰")
+            
             options.append(discord.SelectOption(
                 label=f"{account['name']} ({account['tag']})",
                 value=account["tag"],
-                description="Currently viewing" if is_current else f"Switch to {account['name']}",
+                emoji=th_emoji,
                 default=is_current
             ))
         

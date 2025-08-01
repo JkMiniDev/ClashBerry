@@ -395,7 +395,8 @@ class ViewSelector(discord.ui.Select):
             
             # Check if parent view has user_accounts (multi-account view)
             if hasattr(self.view, 'user_accounts') and self.view.user_accounts:
-                view = UserProfileButtonView(self.player_data, self.view.user_accounts, current_view=self.values[0])
+                account_th_data = getattr(self.view, 'account_th_data', None)
+                view = UserProfileButtonView(self.player_data, self.view.user_accounts, current_view=self.values[0], account_th_data=account_th_data)
             else:
                 view = ProfileButtonView(self.player_data, current_view=self.values[0])
             
@@ -473,17 +474,24 @@ class ProfileButtonView(discord.ui.View):
                 pass
 
 class UserAccountSwitcher(discord.ui.Select):
-    def __init__(self, user_accounts, current_player_data):
+    def __init__(self, user_accounts, current_player_data, account_th_data=None):
         current_tag = current_player_data.get("tag", "")
         
         # Create options from user accounts
         options = []
         for account in user_accounts[:25]:  # Discord limit of 25 options
             is_current = account["tag"] == current_tag
+            
+            # Get town hall emoji for this account
+            th_emoji = "🏰"  # Default
+            if account_th_data and account["tag"] in account_th_data:
+                th_level = str(account_th_data[account["tag"]])
+                th_emoji = EMOJI_MAP.get(f"TH{th_level}", "🏰")
+            
             options.append(discord.SelectOption(
                 label=f"{account['name']} ({account['tag']})",
                 value=account["tag"],
-                description="Currently viewing" if is_current else f"Switch to {account['name']}",
+                emoji=th_emoji,
                 default=is_current
             ))
         
@@ -494,6 +502,7 @@ class UserAccountSwitcher(discord.ui.Select):
             options=options
         )
         self.user_accounts = user_accounts
+        self.account_th_data = account_th_data
     
     async def callback(self, interaction: discord.Interaction):
         try:
@@ -529,7 +538,7 @@ class UserAccountSwitcher(discord.ui.Select):
             else:
                 new_embed = PlayerEmbeds.unit_embed(player_data)
                 
-            new_view = UserProfileButtonView(player_data, self.user_accounts, self.view.current_view)
+            new_view = UserProfileButtonView(player_data, self.user_accounts, self.view.current_view, self.account_th_data)
             
             await interaction.edit_original_response(embed=new_embed, view=new_view)
         except discord.NotFound:
@@ -539,12 +548,13 @@ class UserAccountSwitcher(discord.ui.Select):
             print(f"Error in UserAccountSwitcher callback: {e}")
 
 class UserProfileButtonView(discord.ui.View):
-    def __init__(self, player_data, user_accounts, current_view="Profile Overview"):
+    def __init__(self, player_data, user_accounts, current_view="Profile Overview", account_th_data=None):
         super().__init__(timeout=None)
         self.player_data = player_data
         self.player_tag = player_data.get("tag", "")
         self.current_view = current_view
         self.user_accounts = user_accounts
+        self.account_th_data = account_th_data
 
         # Add buttons first (row 0)
         self.refresh_btn = discord.ui.Button(
@@ -572,7 +582,7 @@ class UserProfileButtonView(discord.ui.View):
         self.add_item(view_selector)
         
         # Add account switcher dropdown (row 2)
-        account_switcher = UserAccountSwitcher(user_accounts, player_data)
+        account_switcher = UserAccountSwitcher(user_accounts, player_data, account_th_data)
         account_switcher.row = 2
         self.add_item(account_switcher)
 
@@ -596,7 +606,7 @@ class UserProfileButtonView(discord.ui.View):
             else:
                 embed = PlayerEmbeds.unit_embed(fresh_data)
 
-            view = UserProfileButtonView(fresh_data, self.user_accounts, current_view=self.current_view)
+            view = UserProfileButtonView(fresh_data, self.user_accounts, current_view=self.current_view, account_th_data=self.account_th_data)
             await interaction.edit_original_response(embed=embed, view=view)
         except discord.NotFound:
             pass
@@ -712,9 +722,9 @@ def setup(bot):
             await interaction.followup.send("Please provide either a player tag or select a Discord user.", ephemeral=True)
             return
         
+        # If both tag and user are provided, prioritize tag (single account view)
         if tag and user:
-            await interaction.followup.send("Please provide either a player tag OR a Discord user, not both.", ephemeral=True)
-            return
+            user = None  # Ignore user parameter when tag is provided
         
         # Handle user selection (show all their linked accounts)
         if user:
@@ -724,6 +734,16 @@ def setup(bot):
             if not user_accounts:
                 await interaction.followup.send(f"{user.mention} has no linked accounts.", ephemeral=True)
                 return
+            
+            # Fetch town hall data for all accounts
+            account_th_data = {}
+            for account in user_accounts:
+                try:
+                    player_data_temp = await get_coc_player(account["tag"])
+                    if player_data_temp:
+                        account_th_data[account["tag"]] = player_data_temp.get('townHallLevel', 1)
+                except:
+                    account_th_data[account["tag"]] = 1  # Default to TH1
             
             if len(user_accounts) == 1:
                 # Single account - show directly
@@ -752,7 +772,7 @@ def setup(bot):
                 discord_info = await get_discord_info_for_player(primary_account["tag"])
                 player_data["discord_info"] = discord_info
                 
-                view = UserProfileButtonView(player_data, user_accounts, current_view="Profile Overview")
+                view = UserProfileButtonView(player_data, user_accounts, current_view="Profile Overview", account_th_data=account_th_data)
                 embed = PlayerEmbeds.player_info(player_data)
                 await interaction.followup.send(embed=embed, view=view, ephemeral=True)
         
