@@ -23,7 +23,7 @@ else:
     accounts_db = None
 
 # Load ticket configuration from JSON file
-config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ticket_config.json')
+config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
 ticket_config = None
 
 def load_config():
@@ -33,10 +33,10 @@ def load_config():
             ticket_config = json.load(f)
         print(f"Ticket configuration loaded successfully from {config_path}")
     except FileNotFoundError:
-        print(f"Warning: ticket_config.json not found at {config_path}")
+        print(f"Warning: config.json not found at {config_path}")
         ticket_config = {}
     except Exception as e:
-        print(f"Error loading ticket_config.json: {str(e)}")
+        print(f"Error loading config.json: {str(e)}")
         ticket_config = {}
 
 def get_config():

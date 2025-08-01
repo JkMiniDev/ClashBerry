@@ -2,7 +2,7 @@
 
 ## Setup Instructions
 
-1. **Configure ticket_config.json:**
+1. **Configure config.json:**
    - Set your `server_id`
    - Set your `staff_role_id` 
    - Set your `ticket_category_id`
@@ -20,7 +20,7 @@
 
 ## Configuration Files
 
-### Server Configuration (`ticket_config.json`)
+### Server Configuration (`config.json`)
 ```json
 {
   "server_id": "YOUR_SERVER_ID_HERE",
