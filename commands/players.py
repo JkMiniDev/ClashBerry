@@ -37,6 +37,28 @@ except Exception as e:
     print(f"Error loading max_lvl.json: {str(e)}")
     max_levels = {}
 
+async def get_linked_accounts(discord_id):
+    """Get linked accounts for a Discord user"""
+    if db is None:
+        print("Error: MongoDB not initialized for linked accounts")
+        return []
+    
+    try:
+        linked_players_collection = db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": str(discord_id)})
+        if result:
+            # Combine verified and unverified accounts
+            verified = result.get("verified", [])
+            unverified = result.get("unverified", [])
+            all_accounts = verified + unverified
+            print(f"get_linked_accounts: Found {len(all_accounts)} accounts for user {discord_id}")
+            return all_accounts
+        print(f"get_linked_accounts: No linked accounts found for user {discord_id}")
+        return []
+    except Exception as e:
+        print(f"Error fetching linked accounts for user {discord_id}: {e}")
+        return []
+
 class PlayerEmbeds:
     ELIXIR_TROOPS = [
         "Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker", "Balloon", "Wizard",
@@ -748,7 +770,6 @@ def setup(bot):
         
         # Handle user selection (show all their linked accounts)
         if user:
-            from commands.utils import get_linked_accounts
             user_accounts = await get_linked_accounts(user.id)
             
             if not user_accounts:
