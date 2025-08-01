@@ -339,22 +339,21 @@ class DeleteConfirmView(discord.ui.View):
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.channel.delete()
 
-async def send_panel(interaction: discord.Interaction, channel: discord.TextChannel = None):
+async def send_panel_to_channel(bot, message, target_channel=None):
     """Send ticket panel to specified channel or current channel (Admin only)"""
     # Check if user has admin permissions
-    if not interaction.user.guild_permissions.administrator:
+    if not message.author.guild_permissions.administrator:
         # Silently ignore - no response
         return
     
     # Use specified channel or current channel
-    target_channel = channel or interaction.channel
+    target_channel = target_channel or message.channel
     
     # Check if bot has permissions in target channel
-    bot_permissions = target_channel.permissions_for(interaction.guild.me)
+    bot_permissions = target_channel.permissions_for(message.guild.me)
     if not (bot_permissions.send_messages and bot_permissions.embed_links):
-        await interaction.response.send_message(
-            "❌ I don't have permission to send messages or embeds in that channel.",
-            ephemeral=True
+        await message.channel.send(
+            "❌ I don't have permission to send messages or embeds in that channel."
         )
         return
     
@@ -403,28 +402,16 @@ async def send_panel(interaction: discord.Interaction, channel: discord.TextChan
         panel_message = await target_channel.send(embed=embed, view=view)
         
         # Send confirmation to user
-        if target_channel == interaction.channel:
-            await interaction.response.send_message(
-                f"✅ Ticket panel sent to this channel!",
-                ephemeral=True
-            )
+        if target_channel == message.channel:
+            await message.channel.send("✅ Ticket panel sent to this channel!")
         else:
-            await interaction.response.send_message(
-                f"✅ Ticket panel sent to {target_channel.mention}!",
-                ephemeral=True
-            )
+            await message.channel.send(f"✅ Ticket panel sent to {target_channel.mention}!")
             
     except Exception as e:
-        await interaction.response.send_message(
-            f"❌ Failed to send ticket panel: {str(e)}",
-            ephemeral=True
-        )
+        await message.channel.send(f"❌ Failed to send ticket panel: {str(e)}")
 
 def setup(bot):
-    # Register the slash command
-    @bot.tree.command(name="sendpanel", description="Send ticket panel to a channel (Admin only)")
-    async def sendpanel_command(interaction: discord.Interaction, channel: discord.TextChannel = None):
-        await send_panel(interaction, channel)
+    pass  # No commands to register
 class AccountDropdownView(discord.ui.View):
     def __init__(self, linked_accounts, normalized_username, account_th_data=None):
         super().__init__(timeout=300)

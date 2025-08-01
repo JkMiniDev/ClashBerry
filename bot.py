@@ -49,6 +49,31 @@ async def on_ready():
     
     print(f"Bot ready as {bot.user}")
 
+@bot.event
+async def on_message(message):
+    # Ignore messages from bots
+    if message.author.bot:
+        return
+    
+    # Check if bot is mentioned and message contains "post"
+    if bot.user in message.mentions and "post" in message.content.lower():
+        # Check if user has admin permissions
+        if not message.author.guild_permissions.administrator:
+            # Silently ignore - no response
+            return
+        
+        # Parse for channel mentions
+        target_channel = None
+        if message.channel_mentions:
+            target_channel = message.channel_mentions[0]  # Use first mentioned channel
+        
+        # Send panel
+        from commands.ticket import send_panel_to_channel
+        await send_panel_to_channel(bot, message, target_channel)
+    
+    # Process other commands
+    await bot.process_commands(message)
+
 if __name__ == "__main__":
     if not DISCORD_TOKEN:
         print("DISCORD_TOKEN is not set properly in your environment variables.")
