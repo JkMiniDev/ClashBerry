@@ -57,13 +57,11 @@ class TicketButton(discord.ui.Button):
                         account_th_data[account["tag"]] = 1  # Default to TH1
                 
                 # Show account selection if multiple accounts
+                account_selection_view = AccountSelectionView(linked_accounts, normalized_username, account_th_data)
+                initial_embed = await account_selection_view.get_enhanced_embed()
                 await interaction.followup.send(
-                    embed=discord.Embed(
-                        title="Select Accounts",
-                        description="You have multiple linked accounts. Please select which accounts you want to use for this ticket (you can select multiple):",
-                        color=discord.Color.blue()
-                    ),
-                    view=AccountSelectionView(linked_accounts, normalized_username, account_th_data),
+                    embed=initial_embed,
+                    view=account_selection_view,
                     ephemeral=True
                 )
             elif linked_accounts and len(linked_accounts) == 1:
@@ -349,15 +347,64 @@ class AccountSelectionView(discord.ui.View):
         self.selected_accounts = []
         self.account_th_data = account_th_data or {}
         
-        # Add account selection checkboxes (up to 25 accounts)
+        # Add account selection buttons with enhanced styling
         for i, account in enumerate(linked_accounts[:25]):
-            self.add_item(AccountCheckboxButton(account, i, self.account_th_data.get(account["tag"])))
+            self.add_item(EnhancedAccountButton(account, i, self.account_th_data.get(account["tag"])))
+        
+        # Add control buttons
+        if len(linked_accounts) > 1:
+            self.add_item(SelectAllButton())
+            self.add_item(ClearSelectionButton())
     
-    @discord.ui.button(label="Confirm Selection", style=discord.ButtonStyle.green, row=4)
+    async def get_enhanced_embed(self):
+        """Create an enhanced embed for account selection"""
+        embed = discord.Embed(
+            title="🔐 Select Account(s)",
+            description="**Select at least 1**\n\nChoose which accounts you want to use for this ticket. You can select multiple accounts if needed.",
+            color=0x5865F2  # Discord blurple color
+        )
+        
+        # Add account information
+        if self.selected_accounts:
+            selected_text = ""
+            for account in self.selected_accounts:
+                th_level = self.account_th_data.get(account["tag"], "?")
+                from commands.utils import PlayerEmbeds
+                th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level), "🏰")
+                selected_text += f"{th_emoji} **{account['name']}** `{account['tag']}`\n"
+            
+            embed.add_field(
+                name=f"✅ Selected ({len(self.selected_accounts)})",
+                value=selected_text,
+                inline=False
+            )
+        
+        # Add footer with instructions
+        embed.set_footer(
+            text="💡 Tip: Click accounts to select/deselect them",
+            icon_url="https://cdn.discordapp.com/emojis/741614680961810432.png"
+        )
+        
+        return embed
+    
+    @discord.ui.button(label="✅ Confirm Selection", style=discord.ButtonStyle.green, row=4)
     async def confirm_selection(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.selected_accounts:
-            await interaction.response.send_message("Please select at least one account.", ephemeral=True)
+            error_embed = discord.Embed(
+                title="❌ No Selection",
+                description="Please select at least one account before confirming.",
+                color=0xED4245  # Discord red color
+            )
+            await interaction.response.send_message(embed=error_embed, ephemeral=True)
             return
+        
+        # Create loading embed
+        loading_embed = discord.Embed(
+            title="🎫 Creating Ticket...",
+            description="Please wait while we set up your ticket with the selected accounts.",
+            color=0xFEE75C  # Discord yellow color
+        )
+        await interaction.response.edit_message(embed=loading_embed, view=None)
         
         staff_role = get_staff_role(interaction.guild)
         
@@ -377,18 +424,18 @@ class AccountSelectionView(discord.ui.View):
             primary_account["name"], 
             self.normalized_username, 
             staff_role,
-            self.selected_accounts, # Pass only selected accounts to the callback
+            self.selected_accounts,
             selected_th_data
         )
 
-class AccountCheckboxButton(discord.ui.Button):
+class EnhancedAccountButton(discord.ui.Button):
     def __init__(self, account, index, th_level=None):
         # Get town hall emoji
         from commands.utils import PlayerEmbeds
-        th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level)) if th_level else None
+        th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level)) if th_level else "🏰"
         
         super().__init__(
-            label=f"{account['name']} ({account['tag']})",
+            label=f"{account['name']}",
             style=discord.ButtonStyle.secondary,
             emoji=th_emoji,
             row=index // 5  # 5 buttons per row
@@ -396,58 +443,72 @@ class AccountCheckboxButton(discord.ui.Button):
         self.account = account
         self.is_selected = False
         self.th_level = th_level
+        self.original_label = f"{account['name']}"
     
     async def callback(self, interaction: discord.Interaction):
         self.is_selected = not self.is_selected
         
         if self.is_selected:
-            self.style = discord.ButtonStyle.green
-            self.label = f"✅ {self.account['name']} ({self.account['tag']})"
+            # Selected state - green with checkmark
+            self.style = discord.ButtonStyle.success
+            self.label = f"✅ {self.original_label}"
             if self.account not in self.view.selected_accounts:
                 self.view.selected_accounts.append(self.account)
         else:
+            # Unselected state - back to secondary
             self.style = discord.ButtonStyle.secondary
-            self.label = f"{self.account['name']} ({self.account['tag']})"
+            self.label = self.original_label
             if self.account in self.view.selected_accounts:
                 self.view.selected_accounts.remove(self.account)
         
-        await interaction.response.edit_message(view=self.view)
+        # Update the embed with current selection
+        updated_embed = await self.view.get_enhanced_embed()
+        await interaction.response.edit_message(embed=updated_embed, view=self.view)
 
-class AccountSelectionDropdown(discord.ui.Select):
-    def __init__(self, linked_accounts, account_th_data=None):
-        # Create options from linked accounts
-        options = []
-        for i, account in enumerate(linked_accounts[:25]):  # Discord limit of 25 options
-            # Get town hall emoji for this account
-            from commands.utils import PlayerEmbeds
-            th_level = account_th_data.get(account["tag"]) if account_th_data else None
-            th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level)) if th_level else None
-            
-            options.append(discord.SelectOption(
-                label=f"{account['name']} ({account['tag']})",
-                value=str(i),
-                emoji=th_emoji
-            ))
-        
+class SelectAllButton(discord.ui.Button):
+    def __init__(self):
         super().__init__(
-            placeholder="Choose an account...",
-            min_values=1,
-            max_values=1,
-            options=options
+            label="Select All",
+            style=discord.ButtonStyle.primary,
+            emoji="☑️",
+            row=4
         )
-        self.linked_accounts = linked_accounts
     
     async def callback(self, interaction: discord.Interaction):
-        selected_index = int(self.values[0])
-        selected_account = self.linked_accounts[selected_index]
+        # Select all accounts
+        for item in self.view.children:
+            if isinstance(item, EnhancedAccountButton) and not item.is_selected:
+                item.is_selected = True
+                item.style = discord.ButtonStyle.success
+                item.label = f"✅ {item.original_label}"
+                if item.account not in self.view.selected_accounts:
+                    self.view.selected_accounts.append(item.account)
         
-        # Update parent view's selected accounts
-        self.view.selected_accounts = [selected_account]
-        
-        await interaction.response.send_message(
-            f"Selected: **{selected_account['name']} ({selected_account['tag']})**",
-            ephemeral=True
+        # Update the embed
+        updated_embed = await self.view.get_enhanced_embed()
+        await interaction.response.edit_message(embed=updated_embed, view=self.view)
+
+class ClearSelectionButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Clear All",
+            style=discord.ButtonStyle.danger,
+            emoji="🗑️",
+            row=4
         )
+    
+    async def callback(self, interaction: discord.Interaction):
+        # Clear all selections
+        self.view.selected_accounts.clear()
+        for item in self.view.children:
+            if isinstance(item, EnhancedAccountButton) and item.is_selected:
+                item.is_selected = False
+                item.style = discord.ButtonStyle.secondary
+                item.label = item.original_label
+        
+        # Update the embed
+        updated_embed = await self.view.get_enhanced_embed()
+        await interaction.response.edit_message(embed=updated_embed, view=self.view)
 
 class MultiAccountTicketActionsView(discord.ui.View):
     def __init__(self, username, staff_role_id, current_player_data, all_linked_accounts, account_th_data=None):
