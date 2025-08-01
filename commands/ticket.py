@@ -339,8 +339,92 @@ class DeleteConfirmView(discord.ui.View):
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.channel.delete()
 
+async def send_panel(interaction: discord.Interaction, channel: discord.TextChannel = None):
+    """Send ticket panel to specified channel or current channel (Admin only)"""
+    # Check if user has admin permissions
+    if not interaction.user.guild_permissions.administrator:
+        # Silently ignore - no response
+        return
+    
+    # Use specified channel or current channel
+    target_channel = channel or interaction.channel
+    
+    # Check if bot has permissions in target channel
+    bot_permissions = target_channel.permissions_for(interaction.guild.me)
+    if not (bot_permissions.send_messages and bot_permissions.embed_links):
+        await interaction.response.send_message(
+            "❌ I don't have permission to send messages or embeds in that channel.",
+            ephemeral=True
+        )
+        return
+    
+    try:
+        # Get panel configuration
+        from commands.utils import get_panel_embed_data, get_button_data
+        
+        embed_data = get_panel_embed_data()
+        button_data = get_button_data()
+        
+        # Create embed
+        embed = discord.Embed(
+            title=embed_data.get("title", "🎫 Ticket System"),
+            description=embed_data.get("description", "Click the button below to create a new ticket."),
+            color=embed_data.get("color", 5763719)
+        )
+        
+        # Add thumbnail if configured
+        thumbnail_url = embed_data.get("thumbnail", {}).get("url")
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+        
+        # Add footer if configured
+        footer_data = embed_data.get("footer", {})
+        footer_text = footer_data.get("text")
+        footer_icon = footer_data.get("icon_url")
+        if footer_text:
+            embed.set_footer(text=footer_text, icon_url=footer_icon)
+        
+        # Create view with ticket button
+        button_label = button_data.get("label", "🎟️ Create Ticket")
+        button_style_str = button_data.get("color", "primary")
+        
+        # Convert string to ButtonStyle
+        button_style = discord.ButtonStyle.primary
+        if button_style_str == "secondary":
+            button_style = discord.ButtonStyle.secondary
+        elif button_style_str == "success":
+            button_style = discord.ButtonStyle.success
+        elif button_style_str == "danger":
+            button_style = discord.ButtonStyle.danger
+        
+        view = TicketPanelView(button_label, button_style)
+        
+        # Send panel to target channel
+        panel_message = await target_channel.send(embed=embed, view=view)
+        
+        # Send confirmation to user
+        if target_channel == interaction.channel:
+            await interaction.response.send_message(
+                f"✅ Ticket panel sent to this channel!",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                f"✅ Ticket panel sent to {target_channel.mention}!",
+                ephemeral=True
+            )
+            
+    except Exception as e:
+        await interaction.response.send_message(
+            f"❌ Failed to send ticket panel: {str(e)}",
+            ephemeral=True
+        )
+
 def setup(bot):
-    pass  # No commands to register
+    # Register the slash command
+    @bot.tree.command(name="sendpanel", description="Send ticket panel to a channel (Admin only)")
+    async def sendpanel_command(interaction: discord.Interaction, channel: discord.TextChannel = None):
+        await send_panel(interaction, channel)
 class AccountDropdownView(discord.ui.View):
     def __init__(self, linked_accounts, normalized_username, account_th_data=None):
         super().__init__(timeout=300)

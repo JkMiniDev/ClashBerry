@@ -2,7 +2,7 @@
   "server_id": "YOUR_SERVER_ID_HERE",
   "staff_role_id": "YOUR_STAFF_ROLE_ID_HERE",
   "ticket_category_id": "YOUR_TICKET_CATEGORY_ID_HERE",
-  "ticket_channel_id": "YOUR_TICKET_CHANNEL_ID_HERE",
+  "ticket_channel_id": "",
   "panel_embed": {
     "title": "🎫 Ticket System",
     "description": "Click the button below to create a new ticket for support or clan applications.",
