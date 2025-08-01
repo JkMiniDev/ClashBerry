@@ -9,9 +9,20 @@ API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize MongoDB client
-mongodb_client = AsyncIOMotorClient(MONGODB_URI)
-db = mongodb_client[MONGODB_DATABASE]
+# Initialize MongoDB client with error handling
+mongodb_client = None
+db = None
+
+if MONGODB_URI and MONGODB_DATABASE:
+    try:
+        mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+        db = mongodb_client[MONGODB_DATABASE]
+    except Exception as e:
+        print(f"Error initializing MongoDB: {e}")
+        mongodb_client = None
+        db = None
+else:
+    print("Warning: MongoDB environment variables not set. Some features may not work.")
 
 # Load max_lvl.json using absolute path
 try:
@@ -631,6 +642,9 @@ async def get_coc_player(player_tag):
 
 async def get_discord_info_for_player(player_tag):
     """Get Discord info for a specific player tag"""
+    if db is None:
+        return "Not Linked"
+    
     try:
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
@@ -652,6 +666,9 @@ async def get_discord_info_for_player(player_tag):
 
 async def update_player_name_if_changed(player_tag, new_name):
     """Update player name in database if it has changed"""
+    if db is None:
+        return  # Skip if database not available
+    
     try:
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
@@ -679,6 +696,9 @@ async def update_player_name_if_changed(player_tag, new_name):
         print(f"Error updating player name: {e}")
 
 async def get_linked_players(discord_id):
+    if db is None:
+        return []
+    
     try:
         linked_players_collection = db.linked_players
         result = await linked_players_collection.find_one({"discord_id": discord_id})
