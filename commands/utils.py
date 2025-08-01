@@ -830,10 +830,10 @@ class ProfileAccountSwitcher(discord.ui.Select):
             is_current = account["tag"] == current_tag
             
             # Get town hall emoji for this account
-            th_emoji = "🏰"  # Default
+            th_emoji = None  # Let Discord use default if not found
             if account_th_data and account["tag"] in account_th_data:
                 th_level = str(account_th_data[account["tag"]])
-                th_emoji = EMOJI_MAP.get(f"TH{th_level}", "🏰")
+                th_emoji = TH_EMOJIS.get(th_level)
             
             options.append(discord.SelectOption(
                 label=f"{account['name']} ({account['tag']})",

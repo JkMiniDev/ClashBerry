@@ -384,8 +384,8 @@ class AccountSelectionView(discord.ui.View):
 class AccountCheckboxButton(discord.ui.Button):
     def __init__(self, account, index, th_level=None):
         # Get town hall emoji
-        from commands.utils import EMOJI_MAP
-        th_emoji = EMOJI_MAP.get(f"TH{th_level}", "🏰") if th_level else "🏰"
+        from commands.utils import TH_EMOJIS
+        th_emoji = TH_EMOJIS.get(str(th_level)) if th_level else None
         
         super().__init__(
             label=f"{account['name']} ({account['tag']})",
@@ -419,9 +419,9 @@ class AccountSelectionDropdown(discord.ui.Select):
         options = []
         for i, account in enumerate(linked_accounts[:25]):  # Discord limit of 25 options
             # Get town hall emoji for this account
-            from commands.utils import EMOJI_MAP
+            from commands.utils import TH_EMOJIS
             th_level = account_th_data.get(account["tag"]) if account_th_data else None
-            th_emoji = EMOJI_MAP.get(f"TH{th_level}", "🏰") if th_level else "🏰"
+            th_emoji = TH_EMOJIS.get(str(th_level)) if th_level else None
             
             options.append(discord.SelectOption(
                 label=f"{account['name']} ({account['tag']})",
