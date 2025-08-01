@@ -423,6 +423,49 @@ class ProfileButtonView(discord.ui.View):
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
 
+        if self.player_tag:
+            tag = self.player_tag.replace("#", "")
+            url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag}"
+            self.add_item(discord.ui.Button(
+                label="Open In-game",
+                url=url,
+                style=discord.ButtonStyle.link
+            ))
+
+    async def refresh_btn_callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer()
+            fresh_data = await get_coc_player(self.player_tag)
+            if not fresh_data:
+                await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
+                return
+            
+            # Check for name changes and update database if needed
+            player_tag = fresh_data.get("tag", "")
+            player_name = fresh_data.get("name", "")
+            if player_tag and player_name:
+                await update_player_name_if_changed(player_tag, player_name)
+            
+            # Get Discord info for the refreshed player data
+            discord_info = await get_discord_info_for_player(player_tag)
+            fresh_data["discord_info"] = discord_info
+            
+            new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
+            if self.current_view == "Profile Overview":
+                embed = PlayerEmbeds.player_info(fresh_data)
+            else:
+                embed = PlayerEmbeds.unit_embed(fresh_data)
+            
+            await interaction.edit_original_response(embed=embed, view=new_view)
+        except discord.NotFound:
+            pass
+        except Exception as e:
+            print(f"Error in refresh callback: {e}")
+            try:
+                await interaction.followup.send("❌ Failed to refresh data.", ephemeral=True)
+            except:
+                pass
+
 class UserAccountSwitcher(discord.ui.Select):
     def __init__(self, user_accounts, current_player_data):
         current_tag = current_player_data.get("tag", "")
@@ -503,12 +546,12 @@ class UserProfileButtonView(discord.ui.View):
         # Then add account switcher dropdown below (row 1)
         self.add_item(UserAccountSwitcher(user_accounts, player_data))
 
-        # Add refresh button (row 0)
+        # Add refresh button (row 2, since row 1 is account switcher)
         self.refresh_btn = discord.ui.Button(
             emoji="🔃",
             style=discord.ButtonStyle.secondary,
             custom_id="refresh_btn_user",
-            row=0
+            row=2
         )
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
@@ -544,39 +587,7 @@ class UserProfileButtonView(discord.ui.View):
             except:
                 pass
 
-        if self.player_tag:
-            tag = self.player_tag.replace("#", "")
-            url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag}"
-            self.add_item(discord.ui.Button(
-                label="Open In-game",
-                url=url,
-                style=discord.ButtonStyle.link
-            ))
 
-    async def refresh_btn_callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        fresh_data = await get_coc_player(self.player_tag)
-        if not fresh_data:
-            await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
-            return
-        
-        # Check for name changes and update database if needed
-        player_tag = fresh_data.get("tag", "")
-        player_name = fresh_data.get("name", "")
-        if player_tag and player_name:
-            await update_player_name_if_changed(player_tag, player_name)
-        
-        # Get Discord info for the refreshed player data
-        discord_info = await get_discord_info_for_player(player_tag)
-        fresh_data["discord_info"] = discord_info
-        
-        new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
-        if self.current_view == "Profile Overview":
-            embed = PlayerEmbeds.player_info(fresh_data)
-        else:
-            embed = PlayerEmbeds.unit_embed(fresh_data)
-        
-        await interaction.edit_original_response(embed=embed, view=new_view)
 
 async def get_coc_player(player_tag):
     url = f"https://cocproxy.royaleapi.dev/v1/players/{player_tag.replace('#', '%23')}"
