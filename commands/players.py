@@ -413,12 +413,12 @@ class ProfileButtonView(discord.ui.View):
         self.player_tag = player_data.get("tag", "")
         self.current_view = current_view
 
-        self.add_item(ViewSelector(player_data, current_view))
-
+        # Add buttons first (row 0)
         self.refresh_btn = discord.ui.Button(
             emoji="🔃",
             style=discord.ButtonStyle.secondary,
-            custom_id="refresh_btn"
+            custom_id="refresh_btn",
+            row=0
         )
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
@@ -429,8 +429,14 @@ class ProfileButtonView(discord.ui.View):
             self.add_item(discord.ui.Button(
                 label="Open In-game",
                 url=url,
-                style=discord.ButtonStyle.link
+                style=discord.ButtonStyle.link,
+                row=0
             ))
+
+        # Add view selector dropdown below buttons (row 1)
+        view_selector = ViewSelector(player_data, current_view)
+        view_selector.row = 1
+        self.add_item(view_selector)
 
     async def refresh_btn_callback(self, interaction: discord.Interaction):
         try:
@@ -485,8 +491,7 @@ class UserAccountSwitcher(discord.ui.Select):
             placeholder="Switch account...",
             min_values=1,
             max_values=1,
-            options=options,
-            row=1
+            options=options
         )
         self.user_accounts = user_accounts
     
@@ -541,20 +546,35 @@ class UserProfileButtonView(discord.ui.View):
         self.current_view = current_view
         self.user_accounts = user_accounts
 
-        # Add the regular view selector first (row 0)
-        self.add_item(ViewSelector(player_data, current_view))
-        # Then add account switcher dropdown below (row 1)
-        self.add_item(UserAccountSwitcher(user_accounts, player_data))
-
-        # Add refresh button (row 2, since row 1 is account switcher)
+        # Add buttons first (row 0)
         self.refresh_btn = discord.ui.Button(
             emoji="🔃",
             style=discord.ButtonStyle.secondary,
             custom_id="refresh_btn_user",
-            row=2
+            row=0
         )
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
+
+        if self.player_tag:
+            tag = self.player_tag.replace("#", "")
+            url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag}"
+            self.add_item(discord.ui.Button(
+                label="Open In-game",
+                url=url,
+                style=discord.ButtonStyle.link,
+                row=0
+            ))
+
+        # Add view selector dropdown (row 1)
+        view_selector = ViewSelector(player_data, current_view)
+        view_selector.row = 1
+        self.add_item(view_selector)
+        
+        # Add account switcher dropdown (row 2)
+        account_switcher = UserAccountSwitcher(user_accounts, player_data)
+        account_switcher.row = 2
+        self.add_item(account_switcher)
 
     async def refresh_btn_callback(self, interaction: discord.Interaction):
         try:
