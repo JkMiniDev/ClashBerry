@@ -488,35 +488,6 @@ def get_category_id():
     print(f"get_category_id: No ticket_category_id found in configuration")
     return None
 
-def get_welcome_embed_data():
-    """Get welcome embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("welcome_embed"):
-        print(f"get_welcome_embed_data: Found welcome embed data")
-        return config["welcome_embed"]
-    print(f"get_welcome_embed_data: No welcome embed data found in configuration")
-    return None
-
-def get_panel_embed_data():
-    """Get panel embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("panel_embed"):
-        print(f"get_panel_embed_data: Found panel embed data")
-        return config["panel_embed"]
-    print(f"get_panel_embed_data: No panel embed data found in configuration")
-    return None
-
-def get_button_data():
-    """Get button label and color from JSON configuration"""
-    config = get_config()
-    if config:
-        button_label = config.get("button_label", "🎟️ Create Ticket")
-        button_color = config.get("button_color", "primary")
-        print(f"get_button_data: Found button data: label={button_label}, color={button_color}")
-        return button_label, button_color
-    print(f"get_button_data: No button data found in configuration, using defaults")
-    return "🎟️ Create Ticket", "primary"
-
 async def parse_discohook_link(link):
     """Parse Discohook link and return embed data"""
     try:
@@ -620,34 +591,6 @@ def get_category_id():
     print(f"get_category_id: No ticket_category_id found in configuration")
     return None
 
-def get_welcome_embed_data():
-    """Get welcome embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("welcome_embed"):
-        print(f"get_welcome_embed_data: Found welcome embed data")
-        return config["welcome_embed"]
-    print(f"get_welcome_embed_data: No welcome embed data found in configuration")
-    return None
-
-def get_panel_embed_data():
-    """Get panel embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("panel_embed"):
-        print(f"get_panel_embed_data: Found panel embed data")
-        return config["panel_embed"]
-    print(f"get_panel_embed_data: No panel embed data found in configuration")
-    return None
-
-def get_button_data():
-    """Get button label and color from JSON configuration"""
-    config = get_config()
-    if config:
-        button_label = config.get("button_label", "🎟️ Create Ticket")
-        button_color = config.get("button_color", "primary")
-        print(f"get_button_data: Found button data: label={button_label}, color={button_color}")
-        return button_label, button_color
-    print(f"get_button_data: No button data found in configuration, using defaults")
-    return "🎟️ Create Ticket", "primary"
 def get_staff_role(guild):
     """Get staff role from JSON configuration"""
     config = get_config()
@@ -674,33 +617,65 @@ def get_category_id():
     return None
 
 def get_welcome_embed_data():
-    """Get welcome embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("welcome_embed"):
-        print(f"get_welcome_embed_data: Found welcome embed data")
-        return config["welcome_embed"]
-    print(f"get_welcome_embed_data: No welcome embed data found in configuration")
-    return None
+    """Get welcome embed data from welcome.json file"""
+    try:
+        import json
+        import os
+        
+        # Get the path to the welcome.json file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        welcome_path = os.path.join(current_dir, "embeds", "welcome.json")
+        
+        if os.path.exists(welcome_path):
+            with open(welcome_path, 'r', encoding='utf-8') as f:
+                welcome_data = json.load(f)
+                print(f"get_welcome_embed_data: Found welcome embed data")
+                return welcome_data
+        else:
+            print(f"get_welcome_embed_data: welcome.json file not found at {welcome_path}")
+            return None
+    except Exception as e:
+        print(f"get_welcome_embed_data: Error reading welcome.json: {e}")
+        return None
 
 def get_panel_embed_data():
-    """Get panel embed data from JSON configuration"""
-    config = get_config()
-    if config and config.get("panel_embed"):
-        print(f"get_panel_embed_data: Found panel embed data")
-        return config["panel_embed"]
-    print(f"get_panel_embed_data: No panel embed data found in configuration")
-    return None
+    """Get panel embed data from panel.json file"""
+    try:
+        import json
+        import os
+        
+        # Get the path to the panel.json file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        panel_path = os.path.join(current_dir, "embeds", "panel.json")
+        
+        if os.path.exists(panel_path):
+            with open(panel_path, 'r', encoding='utf-8') as f:
+                panel_data = json.load(f)
+                print(f"get_panel_embed_data: Found panel embed data")
+                return panel_data
+        else:
+            print(f"get_panel_embed_data: panel.json file not found at {panel_path}")
+            return None
+    except Exception as e:
+        print(f"get_panel_embed_data: Error reading panel.json: {e}")
+        return None
 
 def get_button_data():
-    """Get button label and color from JSON configuration"""
-    config = get_config()
-    if config:
-        button_label = config.get("button_label", "🎟️ Create Ticket")
-        button_color = config.get("button_color", "primary")
-        print(f"get_button_data: Found button data: label={button_label}, color={button_color}")
-        return button_label, button_color
-    print(f"get_button_data: No button data found in configuration, using defaults")
-    return "🎟️ Create Ticket", "primary"
+    """Get button data from panel.json file"""
+    try:
+        panel_data = get_panel_embed_data()
+        if panel_data and panel_data.get("button"):
+            button_info = panel_data["button"]
+            button_label = button_info.get("label", "🎟️ Create Ticket")
+            button_color = button_info.get("color", "primary")
+            print(f"get_button_data: Found button data: label={button_label}, color={button_color}")
+            return {"label": button_label, "color": button_color}
+        else:
+            print(f"get_button_data: No button data found in panel.json, using defaults")
+            return {"label": "🎟️ Create Ticket", "color": "primary"}
+    except Exception as e:
+        print(f"get_button_data: Error reading button data: {e}")
+        return {"label": "🎟️ Create Ticket", "color": "primary"}
 
 async def send_ticket_panel(bot):
     """Send ticket panel to configured channel on bot startup"""
@@ -736,7 +711,9 @@ async def send_ticket_panel(bot):
             return
         
         # Get button data
-        button_label, button_color = get_button_data()
+        button_data = get_button_data()
+        button_label = button_data.get("label", "🎟️ Create Ticket")
+        button_color = button_data.get("color", "primary")
         button_style = discord.ButtonStyle.primary
         if button_color == "success":
             button_style = discord.ButtonStyle.success

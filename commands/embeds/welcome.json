@@ -1,0 +1,9 @@
+{
+  "title": "Welcome to Your Ticket",
+  "description": "Thank you for creating a ticket! A staff member will be with you shortly.\n\nPlease provide as much detail as possible about your request.",
+  "color": 3066993,
+  "footer": {
+    "text": "Support Team",
+    "icon_url": ""
+  }
+}

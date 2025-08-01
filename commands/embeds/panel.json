@@ -1,0 +1,16 @@
+{
+  "title": "🎫 Ticket System",
+  "description": "Click the button below to create a new ticket for support or clan applications.",
+  "color": 5763719,
+  "thumbnail": {
+    "url": ""
+  },
+  "footer": {
+    "text": "Ticket System",
+    "icon_url": ""
+  },
+  "button": {
+    "label": "🎟️ Create Ticket",
+    "color": "primary"
+  }
+}

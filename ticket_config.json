@@ -1,28 +1,5 @@
 {
   "server_id": "YOUR_SERVER_ID_HERE",
   "staff_role_id": "YOUR_STAFF_ROLE_ID_HERE",
-  "ticket_category_id": "YOUR_TICKET_CATEGORY_ID_HERE",
-  "panel_embed": {
-    "title": "🎫 Ticket System",
-    "description": "Click the button below to create a new ticket for support or clan applications.",
-    "color": 5763719,
-    "thumbnail": {
-      "url": ""
-    },
-    "footer": {
-      "text": "Ticket System",
-      "icon_url": ""
-    }
-  },
-  "welcome_embed": {
-    "title": "Welcome to Your Ticket",
-    "description": "Thank you for creating a ticket! A staff member will be with you shortly.\n\nPlease provide as much detail as possible about your request.",
-    "color": 3066993,
-    "footer": {
-      "text": "Support Team",
-      "icon_url": ""
-    }
-  },
-  "button_label": "🎟️ Create Ticket",
-  "button_color": "primary"
+  "ticket_category_id": "YOUR_TICKET_CATEGORY_ID_HERE"
 }
