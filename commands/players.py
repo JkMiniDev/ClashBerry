@@ -503,12 +503,12 @@ class UserProfileButtonView(discord.ui.View):
         # Then add account switcher dropdown below (row 1)
         self.add_item(UserAccountSwitcher(user_accounts, player_data))
 
-        # Add refresh button (row 2)
+        # Add refresh button (row 0)
         self.refresh_btn = discord.ui.Button(
             emoji="🔃",
             style=discord.ButtonStyle.secondary,
             custom_id="refresh_btn_user",
-            row=2
+            row=0
         )
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
