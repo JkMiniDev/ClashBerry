@@ -436,7 +436,7 @@ class AccountDropdownView(discord.ui.View):
             selected_text = ""
             for account in self.selected_accounts:
                 th_level = self.account_th_data.get(account["tag"], "?")
-                            th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level), "🏰")
+                th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level), "🏰")
                 selected_text += f"{th_emoji} **{account['name']}** `{account['tag']}`\n"
             
             embed.add_field(
