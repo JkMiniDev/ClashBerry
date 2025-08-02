@@ -3,6 +3,7 @@ import discord
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import json  # Added for max_lvl.json and emoji loading
+from .assets.townhall_icons import TOWNHALL_ICON_URLS
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
@@ -103,6 +104,8 @@ class PlayerEmbeds:
         TH_EMOJIS = json.load(f)
     with open(os.path.join(script_dir, 'commands', 'emoji', 'home_units.json'), 'r') as f:
         UNIT_EMOJIS = json.load(f)
+    with open(os.path.join(script_dir, 'commands', 'emoji', 'league.json'), 'r') as f:
+        LEAGUE_EMOJIS = json.load(f)
     
     # Combine all emojis into one map for compatibility
     EMOJI_MAP = {**UNIT_EMOJIS}
@@ -170,7 +173,11 @@ class PlayerEmbeds:
             embed.add_field(name="Clan", value="Not In Clan", inline=False)
 
         # Season Stats
+        league_name = player_data.get("league", {}).get("name", "Unranked")
+        league_emoji = PlayerEmbeds.LEAGUE_EMOJIS.get(league_name, PlayerEmbeds.LEAGUE_EMOJIS.get("Unranked", ""))
+        
         season_stats = (
+            f"{league_emoji} League: {league_name}\n"
             f"<:Arrow_Right:1390721523765088447> Donated: {player_data.get('donations', 0)}\n"
             f"<:Arrow_Left:1390721571508977858> Received: {player_data.get('donationsReceived', 0)}\n"
             f"<:Sword:1390659453321351289> Attack Wins: {player_data.get('attackWins', 0)}\n"
@@ -212,10 +219,11 @@ class PlayerEmbeds:
         discord_value = player_data.get("discord_info", "Not Linked")
         embed.add_field(name="Discord", value=discord_value, inline=False)
 
-        # League icon (if available)
-        icon = player_data.get("league", {}).get("iconUrls", {}).get("medium")
-        if icon:
-            embed.set_thumbnail(url=icon)
+        # Town Hall icon (if available)
+        th_level = str(player_data.get('townHallLevel', '1'))
+        th_icon_url = TOWNHALL_ICON_URLS.get(th_level)
+        if th_icon_url:
+            embed.set_thumbnail(url=th_icon_url)
         else:
             embed.set_thumbnail(url="https://i.imghippo.com/files/aYq7201ZC.png")
         return embed
