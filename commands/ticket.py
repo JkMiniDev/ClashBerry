@@ -1,5 +1,6 @@
 import discord
-from commands.utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, show_profile, get_linked_accounts
+from commands.utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, get_linked_accounts
+from commands.player import show_profile, PlayerEmbeds
 
 class TicketPanelView(discord.ui.View):
     def __init__(self, button_label="🎟️ Create Ticket", button_color=discord.ButtonStyle.primary):
@@ -435,8 +436,7 @@ class AccountDropdownView(discord.ui.View):
             selected_text = ""
             for account in self.selected_accounts:
                 th_level = self.account_th_data.get(account["tag"], "?")
-                from commands.utils import PlayerEmbeds
-                th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level), "🏰")
+                            th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level), "🏰")
                 selected_text += f"{th_emoji} **{account['name']}** `{account['tag']}`\n"
             
             embed.add_field(
@@ -463,7 +463,6 @@ class AccountMultiSelect(discord.ui.Select):
         options = []
         for account in linked_accounts[:25]:  # Discord limit of 25 options
             # Get town hall emoji for this account
-            from commands.utils import PlayerEmbeds
             th_level = account_th_data.get(account["tag"]) if account_th_data else None
             th_emoji = PlayerEmbeds.TH_EMOJIS.get(str(th_level)) if th_level else "🏰"
             
