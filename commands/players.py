@@ -203,14 +203,22 @@ class PlayerEmbeds:
         # Overall Stats (remaining achievements)
         total_donated = achievements.get('Friend in Need', 0) + achievements.get('Sharing is caring', 0) + achievements.get('Siege Sharer', 0)
         overall_stats = (
-            f"<:Gold:1390666299054755950> Total Loot: <:Gold:1390666299054755950> {PlayerEmbeds.format_number(achievements.get('Gold Grab', 0))} <:Elixir:1390666277856608306> {PlayerEmbeds.format_number(achievements.get('Elixir Escapade', 0))} <:Dark_Elixir:1390666254670630912> {PlayerEmbeds.format_number(achievements.get('Heroic Heist', 0))}\n"
-            f"<:Trophy:1390652405649248347> Best Trophy: {player_data.get('bestTrophies', '?')}\n"
-            f"<:Sword:1390659453321351289> Attack Wins: {achievements.get('Conqueror', 0)}\n"
-            f"<:Shield:1390659485273423914> Defense Wins: {achievements.get('Unbreakable', 0)}\n"
-            f"<:Troops_Donation:1390659367241781279> Total Donated: {total_donated}\n"
-            f"<:Clan_games:1390660765509488774> Clan Games: {achievements.get('Games Champion', 0)}\n"
-            f"<:Capital_Gold:1390661279697338420> Capital Looted: {achievements.get('Aggressive Capitalism', 0)}\n"
-            f"<:Capital_Gold:1390661279697338420> Capital Donated: {achievements.get('Most Valuable Clanmate', 0)}"
+            f"**Best Trophy**\n"
+            f"<:Trophy:1390652405649248347> {player_data.get('bestTrophies', '?')}\n"
+            f"**Total Loot**\n"
+            f"<:Gold:1390666299054755950> {PlayerEmbeds.format_number(achievements.get('Gold Grab', 0))} <:Elixir:1390666277856608306> {PlayerEmbeds.format_number(achievements.get('Elixir Escapade', 0))} <:Dark_Elixir:1390666254670630912> {PlayerEmbeds.format_number(achievements.get('Heroic Heist', 0))}\n"
+            f"**Total Donated**\n"
+            f"<:Troops_Donation:1390659367241781279> {total_donated}\n"
+            f"**Attack Wins**\n"
+            f"<:Sword:1390659453321351289> {achievements.get('Conqueror', 0)}\n"
+            f"**Defense Wins**\n"
+            f"<:Shield:1390659485273423914> {achievements.get('Unbreakable', 0)}\n"
+            f"**Clan Games**\n"
+            f"<:Clan_games:1390660765509488774> {achievements.get('Games Champion', 0)}\n"
+            f"**Capital Looted**\n"
+            f"<:Capital_Gold:1390661279697338420> {achievements.get('Aggressive Capitalism', 0)}\n"
+            f"**Capital Donated**\n"
+            f"<:Capital_Gold:1390661279697338420> {achievements.get('Most Valuable Clanmate', 0)}"
         )
         embed.add_field(name="Overall Stats", value=overall_stats, inline=False)
 
