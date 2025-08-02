@@ -9,9 +9,20 @@ API_TOKEN = os.getenv("API_TOKEN")
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE")
 
-# Initialize MongoDB client
-mongodb_client = AsyncIOMotorClient(MONGODB_URI)
-db = mongodb_client[MONGODB_DATABASE]
+# Initialize MongoDB client with error handling
+mongodb_client = None
+db = None
+
+if MONGODB_URI and MONGODB_DATABASE:
+    try:
+        mongodb_client = AsyncIOMotorClient(MONGODB_URI)
+        db = mongodb_client[MONGODB_DATABASE]
+    except Exception as e:
+        print(f"Error initializing MongoDB: {e}")
+        mongodb_client = None
+        db = None
+else:
+    print("Warning: MongoDB environment variables not set. Some features may not work.")
 
 # Load max_lvl.json using absolute path
 try:
@@ -25,6 +36,28 @@ except FileNotFoundError:
 except Exception as e:
     print(f"Error loading max_lvl.json: {str(e)}")
     max_levels = {}
+
+async def get_linked_accounts(discord_id):
+    """Get linked accounts for a Discord user"""
+    if db is None:
+        print("Error: MongoDB not initialized for linked accounts")
+        return []
+    
+    try:
+        linked_players_collection = db.linked_players
+        result = await linked_players_collection.find_one({"discord_id": str(discord_id)})
+        if result:
+            # Combine verified and unverified accounts
+            verified = result.get("verified", [])
+            unverified = result.get("unverified", [])
+            all_accounts = verified + unverified
+            print(f"get_linked_accounts: Found {len(all_accounts)} accounts for user {discord_id}")
+            return all_accounts
+        print(f"get_linked_accounts: No linked accounts found for user {discord_id}")
+        return []
+    except Exception as e:
+        print(f"Error fetching linked accounts for user {discord_id}: {e}")
+        return []
 
 class PlayerEmbeds:
     ELIXIR_TROOPS = [
@@ -384,13 +417,28 @@ class ViewSelector(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if self.values[0] == "Profile Overview":
-            embed = PlayerEmbeds.player_info(self.player_data)
-        else:
-            embed = PlayerEmbeds.unit_embed(self.player_data)
-        
-        view = ProfileButtonView(self.player_data, current_view=self.values[0])
-        await interaction.response.edit_message(embed=embed, view=view)
+        try:
+            # Defer the interaction immediately
+            await interaction.response.defer()
+            
+            if self.values[0] == "Profile Overview":
+                embed = PlayerEmbeds.player_info(self.player_data)
+            else:
+                embed = PlayerEmbeds.unit_embed(self.player_data)
+            
+            # Check if parent view has user_accounts (multi-account view)
+            if hasattr(self.view, 'user_accounts') and self.view.user_accounts:
+                account_th_data = getattr(self.view, 'account_th_data', None)
+                view = UserProfileButtonView(self.player_data, self.view.user_accounts, current_view=self.values[0], account_th_data=account_th_data)
+            else:
+                view = ProfileButtonView(self.player_data, current_view=self.values[0])
+            
+            await interaction.edit_original_response(embed=embed, view=view)
+        except discord.NotFound:
+            # Interaction already handled, ignore
+            pass
+        except Exception as e:
+            print(f"Error in ViewSelector callback: {e}")
 
 class ProfileButtonView(discord.ui.View):
     def __init__(self, player_data, current_view="Profile Overview"):
@@ -399,12 +447,12 @@ class ProfileButtonView(discord.ui.View):
         self.player_tag = player_data.get("tag", "")
         self.current_view = current_view
 
-        self.add_item(ViewSelector(player_data, current_view))
-
+        # Add buttons first (row 0)
         self.refresh_btn = discord.ui.Button(
             emoji="🔃",
             style=discord.ButtonStyle.secondary,
-            custom_id="refresh_btn"
+            custom_id="refresh_btn",
+            row=0
         )
         self.refresh_btn.callback = self.refresh_btn_callback
         self.add_item(self.refresh_btn)
@@ -415,33 +463,194 @@ class ProfileButtonView(discord.ui.View):
             self.add_item(discord.ui.Button(
                 label="Open In-game",
                 url=url,
-                style=discord.ButtonStyle.link
+                style=discord.ButtonStyle.link,
+                row=0
             ))
 
+        # Add view selector dropdown below buttons (row 1)
+        view_selector = ViewSelector(player_data, current_view)
+        view_selector.row = 1
+        self.add_item(view_selector)
+
     async def refresh_btn_callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        fresh_data = await get_coc_player(self.player_tag)
-        if not fresh_data:
-            await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
-            return
+        try:
+            await interaction.response.defer()
+            fresh_data = await get_coc_player(self.player_tag)
+            if not fresh_data:
+                await interaction.followup.send("⚠️ Interaction expired. Please run the command again.", ephemeral=True)
+                return
+            
+            # Check for name changes and update database if needed
+            player_tag = fresh_data.get("tag", "")
+            player_name = fresh_data.get("name", "")
+            if player_tag and player_name:
+                await update_player_name_if_changed(player_tag, player_name)
+            
+            # Get Discord info for the refreshed player data
+            discord_info = await get_discord_info_for_player(player_tag)
+            fresh_data["discord_info"] = discord_info
+            
+            new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
+            if self.current_view == "Profile Overview":
+                embed = PlayerEmbeds.player_info(fresh_data)
+            else:
+                embed = PlayerEmbeds.unit_embed(fresh_data)
+            
+            await interaction.edit_original_response(embed=embed, view=new_view)
+        except discord.NotFound:
+            pass
+        except Exception as e:
+            print(f"Error in refresh callback: {e}")
+            try:
+                await interaction.followup.send("❌ Failed to refresh data.", ephemeral=True)
+            except:
+                pass
+
+class UserAccountSwitcher(discord.ui.Select):
+    def __init__(self, user_accounts, current_player_data, account_th_data=None):
+        current_tag = current_player_data.get("tag", "")
         
-        # Check for name changes and update database if needed
-        player_tag = fresh_data.get("tag", "")
-        player_name = fresh_data.get("name", "")
-        if player_tag and player_name:
-            await update_player_name_if_changed(player_tag, player_name)
+        # Create options from user accounts
+        options = []
+        for account in user_accounts[:25]:  # Discord limit of 25 options
+            is_current = account["tag"] == current_tag
+            
+            # Get town hall emoji for this account
+            th_emoji = None  # Let Discord use default if not found
+            if account_th_data and account["tag"] in account_th_data:
+                th_level = str(account_th_data[account["tag"]])
+                th_emoji = PlayerEmbeds.TH_EMOJIS.get(th_level)
+            
+            options.append(discord.SelectOption(
+                label=f"{account['name']} ({account['tag']})",
+                value=account["tag"],
+                emoji=th_emoji,
+                default=is_current
+            ))
         
-        # Get Discord info for the refreshed player data
-        discord_info = await get_discord_info_for_player(player_tag)
-        fresh_data["discord_info"] = discord_info
+        super().__init__(
+            placeholder="Switch account...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+        self.user_accounts = user_accounts
+        self.account_th_data = account_th_data
+    
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            # Defer the interaction immediately
+            await interaction.response.defer()
+            
+            selected_tag = self.values[0]
+            
+            # Find the selected account
+            selected_account = None
+            for account in self.user_accounts:
+                if account["tag"] == selected_tag:
+                    selected_account = account
+                    break
+            
+            if not selected_account:
+                await interaction.followup.send("Account not found.", ephemeral=True)
+                return
+            
+            # Get fresh player data for the selected account
+            player_data = await get_coc_player(selected_tag)
+            if player_data is None:
+                await interaction.followup.send("Failed to fetch player data for selected account.", ephemeral=True)
+                return
+            
+            # Get Discord info for the player tag
+            discord_info = await get_discord_info_for_player(selected_tag)
+            player_data["discord_info"] = discord_info
+            
+            # Update the view with new player data
+            if self.view.current_view == "Profile Overview":
+                new_embed = PlayerEmbeds.player_info(player_data)
+            else:
+                new_embed = PlayerEmbeds.unit_embed(player_data)
+                
+            new_view = UserProfileButtonView(player_data, self.user_accounts, self.view.current_view, self.account_th_data)
+            
+            await interaction.edit_original_response(embed=new_embed, view=new_view)
+        except discord.NotFound:
+            # Interaction already handled, ignore
+            pass
+        except Exception as e:
+            print(f"Error in UserAccountSwitcher callback: {e}")
+
+class UserProfileButtonView(discord.ui.View):
+    def __init__(self, player_data, user_accounts, current_view="Profile Overview", account_th_data=None):
+        super().__init__(timeout=None)
+        self.player_data = player_data
+        self.player_tag = player_data.get("tag", "")
+        self.current_view = current_view
+        self.user_accounts = user_accounts
+        self.account_th_data = account_th_data
+
+        # Add buttons first (row 0)
+        self.refresh_btn = discord.ui.Button(
+            emoji="🔃",
+            style=discord.ButtonStyle.secondary,
+            custom_id="refresh_btn_user",
+            row=0
+        )
+        self.refresh_btn.callback = self.refresh_btn_callback
+        self.add_item(self.refresh_btn)
+
+        if self.player_tag:
+            tag = self.player_tag.replace("#", "")
+            url = f"https://link.clashofclans.com/?action=OpenPlayerProfile&tag=%23{tag}"
+            self.add_item(discord.ui.Button(
+                label="Open In-game",
+                url=url,
+                style=discord.ButtonStyle.link,
+                row=0
+            ))
+
+        # Add view selector dropdown (row 1)
+        view_selector = ViewSelector(player_data, current_view)
+        view_selector.row = 1
+        self.add_item(view_selector)
         
-        new_view = ProfileButtonView(fresh_data, current_view=self.current_view)
-        if self.current_view == "Profile Overview":
-            embed = PlayerEmbeds.player_info(fresh_data)
-        else:
-            embed = PlayerEmbeds.unit_embed(fresh_data)
-        
-        await interaction.followup.edit_message(interaction.message.id, embed=embed, view=new_view)
+        # Add account switcher dropdown (row 2)
+        account_switcher = UserAccountSwitcher(user_accounts, player_data, account_th_data)
+        account_switcher.row = 2
+        self.add_item(account_switcher)
+
+    async def refresh_btn_callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer()
+            
+            # Get fresh player data
+            fresh_data = await get_coc_player(self.player_tag)
+            if fresh_data is None:
+                await interaction.followup.send("❌ Failed to refresh player data.", ephemeral=True)
+                return
+
+            # Get Discord info for the refreshed player data
+            discord_info = await get_discord_info_for_player(self.player_tag)
+            fresh_data["discord_info"] = discord_info
+
+            # Update view with fresh data
+            if self.current_view == "Profile Overview":
+                embed = PlayerEmbeds.player_info(fresh_data)
+            else:
+                embed = PlayerEmbeds.unit_embed(fresh_data)
+
+            view = UserProfileButtonView(fresh_data, self.user_accounts, current_view=self.current_view, account_th_data=self.account_th_data)
+            await interaction.edit_original_response(embed=embed, view=view)
+        except discord.NotFound:
+            pass
+        except Exception as e:
+            print(f"Error in refresh callback: {e}")
+            try:
+                await interaction.followup.send("❌ Failed to refresh data.", ephemeral=True)
+            except:
+                pass
+
+
 
 async def get_coc_player(player_tag):
     url = f"https://cocproxy.royaleapi.dev/v1/players/{player_tag.replace('#', '%23')}"
@@ -455,6 +664,9 @@ async def get_coc_player(player_tag):
 
 async def get_discord_info_for_player(player_tag):
     """Get Discord info for a specific player tag"""
+    if db is None:
+        return "Not Linked"
+    
     try:
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
@@ -476,6 +688,9 @@ async def get_discord_info_for_player(player_tag):
 
 async def update_player_name_if_changed(player_tag, new_name):
     """Update player name in database if it has changed"""
+    if db is None:
+        return  # Skip if database not available
+    
     try:
         linked_players_collection = db.linked_players
         cursor = linked_players_collection.find({})
@@ -503,6 +718,9 @@ async def update_player_name_if_changed(player_tag, new_name):
         print(f"Error updating player name: {e}")
 
 async def get_linked_players(discord_id):
+    if db is None:
+        return []
+    
     try:
         linked_players_collection = db.linked_players
         result = await linked_players_collection.find_one({"discord_id": discord_id})
@@ -533,25 +751,89 @@ def setup(bot):
         ][:25]
 
     @bot.tree.command(name="player", description="Get player information")
-    @discord.app_commands.describe(tag="Player tag (e.g. #2Q82LRL)")
+    @discord.app_commands.describe(
+        tag="Player tag (e.g. #2Q82LRL)", 
+        user="Select a Discord user to view their linked accounts"
+    )
     @discord.app_commands.autocomplete(tag=player_tag_autocomplete)
-    async def player_command(interaction: discord.Interaction, tag: str):
+    async def player_command(interaction: discord.Interaction, tag: str = None, user: discord.User = None):
         await interaction.response.defer()
-        player_data = await get_coc_player(tag)
-        if not player_data:
-            await interaction.followup.send("No account found for the provided tag.", ephemeral=True)
+        
+        # Validate input - must provide either tag or user
+        if not tag and not user:
+            await interaction.followup.send("Please provide either a player tag or select a Discord user.", ephemeral=True)
             return
+        
+        # If both tag and user are provided, prioritize tag (single account view)
+        if tag and user:
+            user = None  # Ignore user parameter when tag is provided
+        
+        # Handle user selection (show all their linked accounts)
+        if user:
+            user_accounts = await get_linked_accounts(user.id)
+            
+            if not user_accounts:
+                await interaction.followup.send(f"{user.mention} has no linked accounts.", ephemeral=True)
+                return
+            
+            # Fetch town hall data for all accounts
+            account_th_data = {}
+            for account in user_accounts:
+                try:
+                    player_data_temp = await get_coc_player(account["tag"])
+                    if player_data_temp:
+                        account_th_data[account["tag"]] = player_data_temp.get('townHallLevel', 1)
+                except:
+                    account_th_data[account["tag"]] = 1  # Default to TH1
+            
+            if len(user_accounts) == 1:
+                # Single account - show directly
+                account = user_accounts[0]
+                player_data = await get_coc_player(account["tag"])
+                if not player_data:
+                    await interaction.followup.send(f"Failed to fetch data for {account['name']} ({account['tag']}).", ephemeral=True)
+                    return
+                
+                # Get Discord info for the player
+                discord_info = await get_discord_info_for_player(account["tag"])
+                player_data["discord_info"] = discord_info
+                
+                view = ProfileButtonView(player_data, current_view="Profile Overview")
+                embed = PlayerEmbeds.player_info(player_data)
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            else:
+                # Multiple accounts - show with account switcher
+                primary_account = user_accounts[0]
+                player_data = await get_coc_player(primary_account["tag"])
+                if not player_data:
+                    await interaction.followup.send(f"Failed to fetch data for {primary_account['name']} ({primary_account['tag']}).", ephemeral=True)
+                    return
+                
+                # Get Discord info for the player
+                discord_info = await get_discord_info_for_player(primary_account["tag"])
+                player_data["discord_info"] = discord_info
+                
+                view = UserProfileButtonView(player_data, user_accounts, current_view="Profile Overview", account_th_data=account_th_data)
+                embed = PlayerEmbeds.player_info(player_data)
+                await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        
+        # Handle tag selection (original functionality)
+        else:
+            player_data = await get_coc_player(tag)
+            if not player_data:
+                await interaction.followup.send("No account found for the provided tag.", ephemeral=True)
+                return
 
-        # Check for name changes and update database if needed
-        player_tag = player_data.get("tag", "")
-        player_name = player_data.get("name", "")
-        if player_tag and player_name:
-            await update_player_name_if_changed(player_tag, player_name)
+            # Check for name changes and update database if needed
+            player_tag = player_data.get("tag", "")
+            player_name = player_data.get("name", "")
+            if player_tag and player_name:
+                await update_player_name_if_changed(player_tag, player_name)
 
-        # Get Discord info for the player
-        discord_info = await get_discord_info_for_player(player_tag)
-        player_data["discord_info"] = discord_info
+            # Get Discord info for the player
+            discord_info = await get_discord_info_for_player(player_tag)
+            player_data["discord_info"] = discord_info
 
-        view = ProfileButtonView(player_data, current_view="Profile Overview")
-        embed = PlayerEmbeds.player_info(player_data)
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            view = ProfileButtonView(player_data, current_view="Profile Overview")
+            embed = PlayerEmbeds.player_info(player_data)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
