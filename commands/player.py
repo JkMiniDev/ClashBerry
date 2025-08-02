@@ -165,7 +165,7 @@ class PlayerEmbeds:
             f"<:Trophy:1390652405649248347> Best Trophy: {player_data.get('bestTrophies', '?')}\n"
             f"<:Sword:1390659453321351289> Attack Wins: {achievements.get('Conqueror', 0)}\n"
             f"<:Shield:1390659485273423914> Defense Wins: {achievements.get('Unbreakable', 0)}\n"
-            f"<:Troops_Donation:1390659367241781279> Donations: {total_donated:,} ({troops_donated:,} troops + {spells_donated:,} spells + {siege_donated:,} siege)\n"
+            f"<:Troops_Donation:1390659367241781279> Donations: {total_donated:,}\n"
             f"<:Clan_games:1390660765509488774> Clan Games: {achievements.get('Games Champion', 0)}\n"
             f"<:Capital_Gold:1390661279697338420> Capital Looted: {achievements.get('Aggressive Capitalism', 0)}\n"
             f"<:Capital_Gold:1390661279697338420> Capital Donated: {achievements.get('Most Valuable Clanmate', 0)}"
