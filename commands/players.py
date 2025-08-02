@@ -3,6 +3,7 @@ import discord
 import aiohttp
 from motor.motor_asyncio import AsyncIOMotorClient
 import json  # Added for max_lvl.json and emoji loading
+from .assets.townhall_icons import TOWNHALL_ICON_URLS
 
 # Environment variables
 API_TOKEN = os.getenv("API_TOKEN")
@@ -103,6 +104,8 @@ class PlayerEmbeds:
         TH_EMOJIS = json.load(f)
     with open(os.path.join(script_dir, 'commands', 'emoji', 'home_units.json'), 'r') as f:
         UNIT_EMOJIS = json.load(f)
+    with open(os.path.join(script_dir, 'commands', 'emoji', 'league.json'), 'r') as f:
+        LEAGUE_EMOJIS = json.load(f)
     
     # Combine all emojis into one map for compatibility
     EMOJI_MAP = {**UNIT_EMOJIS}
@@ -170,7 +173,11 @@ class PlayerEmbeds:
             embed.add_field(name="Clan", value="Not In Clan", inline=False)
 
         # Season Stats
+        league_name = player_data.get("league", {}).get("name", "Unranked")
+        league_emoji = PlayerEmbeds.LEAGUE_EMOJIS.get(league_name, PlayerEmbeds.LEAGUE_EMOJIS.get("Unranked", ""))
+        
         season_stats = (
+            f"{league_emoji} League: {league_name}\n"
             f"<:Arrow_Right:1390721523765088447> Donated: {player_data.get('donations', 0)}\n"
             f"<:Arrow_Left:1390721571508977858> Received: {player_data.get('donationsReceived', 0)}\n"
             f"<:Sword:1390659453321351289> Attack Wins: {player_data.get('attackWins', 0)}\n"
@@ -194,17 +201,24 @@ class PlayerEmbeds:
         embed.add_field(name="War Stats", value=war_stats, inline=False)
 
         # Overall Stats (remaining achievements)
+        total_donated = achievements.get('Friend in Need', 0) + achievements.get('Sharing is caring', 0) + achievements.get('Siege Sharer', 0)
         overall_stats = (
-            f"<:Gold:1390666299054755950> Total Loot: <:Gold:1390666299054755950> {PlayerEmbeds.format_number(achievements.get('Gold Grab', 0))} <:Elixir:1390666277856608306> {PlayerEmbeds.format_number(achievements.get('Elixir Escapade', 0))} <:Dark_Elixir:1390666254670630912> {PlayerEmbeds.format_number(achievements.get('Heroic Heist', 0))}\n"
-            f"<:Trophy:1390652405649248347> Best Trophy: {player_data.get('bestTrophies', '?')}\n"
-            f"<:Sword:1390659453321351289> Attack Wins: {achievements.get('Conqueror', 0)}\n"
-            f"<:Shield:1390659485273423914> Defense Wins: {achievements.get('Unbreakable', 0)}\n"
-            f"<:Troops_Donation:1390659367241781279> Troops Donated: {achievements.get('Friend in Need', 0)}\n"
-            f"<:Spell_Donation:1390659413613744228> Spells Donated: {achievements.get('Sharing is caring', 0)}\n"
-            f"<:Siege_Donation:1390659389786030232> Siege Donated: {achievements.get('Siege Sharer', 0)}\n"
-            f"<:Clan_games:1390660765509488774> Clan Games: {achievements.get('Games Champion', 0)}\n"
-            f"<:Capital_Gold:1390661279697338420> Capital Looted: {achievements.get('Aggressive Capitalism', 0)}\n"
-            f"<:Capital_Gold:1390661279697338420> Capital Donated: {achievements.get('Most Valuable Clanmate', 0)}"
+            f"**Best Trophy**\n"
+            f"<:Trophy:1390652405649248347> {player_data.get('bestTrophies', '?')}\n"
+            f"**Total Loot**\n"
+            f"<:Gold:1390666299054755950> {PlayerEmbeds.format_number(achievements.get('Gold Grab', 0))} <:Elixir:1390666277856608306> {PlayerEmbeds.format_number(achievements.get('Elixir Escapade', 0))} <:Dark_Elixir:1390666254670630912> {PlayerEmbeds.format_number(achievements.get('Heroic Heist', 0))}\n"
+            f"**Total Donated**\n"
+            f"<:Troops_Donation:1390659367241781279> {total_donated}\n"
+            f"**Attack Wins**\n"
+            f"<:Sword:1390659453321351289> {achievements.get('Conqueror', 0)}\n"
+            f"**Defense Wins**\n"
+            f"<:Shield:1390659485273423914> {achievements.get('Unbreakable', 0)}\n"
+            f"**Clan Games**\n"
+            f"<:Clan_games:1390660765509488774> {achievements.get('Games Champion', 0)}\n"
+            f"**Capital Looted**\n"
+            f"<:Capital_Gold:1390661279697338420> {achievements.get('Aggressive Capitalism', 0)}\n"
+            f"**Capital Donated**\n"
+            f"<:Capital_Gold:1390661279697338420> {achievements.get('Most Valuable Clanmate', 0)}"
         )
         embed.add_field(name="Overall Stats", value=overall_stats, inline=False)
 
@@ -212,10 +226,11 @@ class PlayerEmbeds:
         discord_value = player_data.get("discord_info", "Not Linked")
         embed.add_field(name="Discord", value=discord_value, inline=False)
 
-        # League icon (if available)
-        icon = player_data.get("league", {}).get("iconUrls", {}).get("medium")
-        if icon:
-            embed.set_thumbnail(url=icon)
+        # Town Hall icon (if available)
+        th_level = str(player_data.get('townHallLevel', '1'))
+        th_icon_url = TOWNHALL_ICON_URLS.get(th_level)
+        if th_icon_url:
+            embed.set_thumbnail(url=th_icon_url)
         else:
             embed.set_thumbnail(url="https://i.imghippo.com/files/aYq7201ZC.png")
         return embed
