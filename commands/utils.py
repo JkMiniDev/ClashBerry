@@ -369,4 +369,17 @@ async def get_discord_info_for_player(player_tag):
         print(f"Error querying MongoDB for linked player: {str(e)}")
         return "Not Linked"
 
+class PlayerEmbeds:
+    # Load emoji mappings from JSON files
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        with open(os.path.join(script_dir, 'emoji', 'town_halls.json'), 'r') as f:
+            TH_EMOJIS = json.load(f)
+    except Exception as e:
+        print(f"Error loading emoji files: {e}")
+        TH_EMOJIS = {}
+
+async def show_profile(interaction, player_data, selected_accounts=None, selected_accounts_th_data=None):
+    """Display enhanced Clash of Clans player profile"""
+    await interaction.response.send_message("Profile view temporarily unavailable", ephemeral=True)
 
