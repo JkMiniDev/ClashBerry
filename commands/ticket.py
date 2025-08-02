@@ -1,6 +1,5 @@
 import discord
-from commands.utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, get_linked_accounts
-from commands.player import show_profile, PlayerEmbeds
+from commands.utils import get_config, get_staff_role, get_category_id, get_welcome_embed_data, get_panel_embed_data, get_button_data, get_linked_accounts, show_profile, PlayerEmbeds
 
 class TicketPanelView(discord.ui.View):
     def __init__(self, button_label="🎟️ Create Ticket", button_color=discord.ButtonStyle.primary):
