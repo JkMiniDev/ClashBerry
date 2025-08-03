@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .debug-section { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .url-display { background: #e3f2fd; padding: 10px; border-radius: 4px; margin: 10px 0; word-break: break-all; }
+        .response { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        pre { white-space: pre-wrap; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    
+    <div class="debug-section">
+        <h3>Direct API Test (Using Your Working Method)</h3>
+        <p>This tests the exact same method as your working HTML file.</p>
+        
+        <input type="text" id="directTag" placeholder="Enter tag (e.g., 2PP)" value="2PP">
+        <button onclick="testDirectAPI()">Test Direct API</button>
+        
+        <div>Generated URL: <div id="directURL" class="url-display">-</div></div>
+        <div>Response: <div id="directResponse" class="response">Click button to test...</div></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>Website API Test (Current Implementation)</h3>
+        <p>This tests using our current API wrapper.</p>
+        
+        <input type="text" id="wrapperTag" placeholder="Enter tag (e.g., 2PP)" value="2PP">
+        <button onclick="testWrapperAPI()">Test Wrapper API</button>
+        
+        <div>Generated URL: <div id="wrapperURL" class="url-display">-</div></div>
+        <div>Response: <div id="wrapperResponse" class="response">Click button to test...</div></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Direct API test - exactly like your working HTML
+        async function testDirectAPI() {
+            const tag = document.getElementById('directTag').value.trim();
+            const urlDiv = document.getElementById('directURL');
+            const responseDiv = document.getElementById('directResponse');
+            
+            const API_TOKEN = "JkMiniDev%1998";
+            const url = `https://api.jktripuri.site/players/${tag.replace("#", "%23")}`;
+            
+            urlDiv.textContent = url;
+            responseDiv.innerHTML = 'Testing...';
+            responseDiv.className = 'response';
+            
+            try {
+                console.log('Direct API call to:', url);
+                
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`
+                    }
+                });
+
+                console.log('Direct API response status:', res.status);
+                console.log('Direct API response headers:', [...res.headers.entries()]);
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Server responded with ${res.status}: ${errorText}`);
+                }
+
+                const data = await res.json();
+                console.log('Direct API response data:', data);
+                
+                responseDiv.className = 'response success';
+                responseDiv.innerHTML = `
+                    <strong>SUCCESS!</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Direct API error:', error);
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `
+                    <strong>ERROR:</strong><br>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Wrapper API test - using our current implementation
+        async function testWrapperAPI() {
+            const tag = document.getElementById('wrapperTag').value.trim();
+            const urlDiv = document.getElementById('wrapperURL');
+            const responseDiv = document.getElementById('wrapperResponse');
+            
+            responseDiv.innerHTML = 'Testing...';
+            responseDiv.className = 'response';
+            
+            try {
+                // Show what URL would be generated
+                const formattedTag = cocAPI.formatPlayerTag(tag);
+                const url = `${cocAPI.baseURL}/players/${formattedTag}`;
+                urlDiv.textContent = url;
+                
+                console.log('Wrapper API call to:', url);
+                
+                const data = await cocAPI.getPlayer(tag);
+                console.log('Wrapper API response data:', data);
+                
+                responseDiv.className = 'response success';
+                responseDiv.innerHTML = `
+                    <strong>SUCCESS!</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Wrapper API error:', error);
+                responseDiv.className = 'response error';
+                responseDiv.innerHTML = `
+                    <strong>ERROR:</strong><br>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Test URL formatting
+        console.log('=== URL Formatting Tests ===');
+        console.log('Direct method (#2PP):', '2PP'.replace("#", "%23"));
+        console.log('Direct method (2PP):', '2PP'.replace("#", "%23"));
+        console.log('Wrapper method (#2PP):', cocAPI.formatPlayerTag('#2PP'));
+        console.log('Wrapper method (2PP):', cocAPI.formatPlayerTag('2PP'));
+        
+        // Test different tag formats
+        const testTags = ['2PP', '#2PP', '#2Y9L0RYR0', '2Y9L0RYR0'];
+        testTags.forEach(tag => {
+            console.log(`Tag "${tag}" -> Direct: "${tag.replace("#", "%23")}", Wrapper: "${cocAPI.formatPlayerTag(tag)}"`);
+        });
+    </script>
+</body>
+</html>

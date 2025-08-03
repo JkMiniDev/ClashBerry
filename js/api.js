@@ -35,20 +35,20 @@ class COCAPI {
         }
     }
 
-    // Format clan tag for API
+    // Format clan tag for API - exactly like working HTML
     formatClanTag(tag) {
         if (!tag) return '';
-        // Remove # if present and replace with %23
-        const cleanTag = tag.replace(/^#+/, '');
-        return `%23${cleanTag}`;
+        // If tag doesn't start with #, add it first, then replace with %23
+        const tagWithHash = tag.startsWith('#') ? tag : '#' + tag;
+        return tagWithHash.replace("#", "%23");
     }
 
-    // Format player tag for API
+    // Format player tag for API - exactly like working HTML  
     formatPlayerTag(tag) {
         if (!tag) return '';
-        // Remove # if present and replace with %23
-        const cleanTag = tag.replace(/^#+/, '');
-        return `%23${cleanTag}`;
+        // If tag doesn't start with #, add it first, then replace with %23
+        const tagWithHash = tag.startsWith('#') ? tag : '#' + tag;
+        return tagWithHash.replace("#", "%23");
     }
 
     // Get clan information
