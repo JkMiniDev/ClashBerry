@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash of Clans Discord Bot Portal</title>
+    <meta name="description" content="Search and view Clash of Clans clan and player data with our Discord bot commands showcase">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-shield-alt"></i> COC Bot Portal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="clan.html">
+                            <i class="fas fa-users"></i> Clan Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="player.html">
+                            <i class="fas fa-user"></i> Player Search
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="commands.html">
+                            <i class="fas fa-terminal"></i> Commands
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <!-- Hero Section -->
+        <div class="hero-section bg-gradient-primary text-white rounded-3 p-5 mb-5">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-3">
+                        <i class="fas fa-shield-alt"></i> Clash of Clans Discord Bot
+                    </h1>
+                    <p class="lead mb-4">
+                        Access comprehensive clan and player data, war statistics, and Discord bot commands through our web portal. 
+                        Search for clans and players using their tags to get detailed information instantly.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="clan.html" class="btn btn-light btn-lg">
+                            <i class="fas fa-users"></i> Search Clans
+                        </a>
+                        <a href="player.html" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-user"></i> Search Players
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <i class="fas fa-trophy" style="font-size: 8rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 feature-card">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-primary text-white rounded-circle mx-auto mb-3">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h5 class="card-title">Clan Information</h5>
+                        <p class="card-text">View detailed clan stats, member lists, war logs, and clan requirements in real-time.</p>
+                        <a href="clan.html" class="btn btn-primary">Explore Clans</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 feature-card">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-success text-white rounded-circle mx-auto mb-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h5 class="card-title">Player Profiles</h5>
+                        <p class="card-text">Check player statistics, achievements, troop levels, and progression details.</p>
+                        <a href="player.html" class="btn btn-success">View Players</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 feature-card">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-warning text-white rounded-circle mx-auto mb-3">
+                            <i class="fas fa-sword"></i>
+                        </div>
+                        <h5 class="card-title">War Statistics</h5>
+                        <p class="card-text">Monitor clan wars, CWL progress, and member attack performance in detail.</p>
+                        <a href="clan.html" class="btn btn-warning">War Data</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 feature-card">
+                    <div class="card-body text-center">
+                        <div class="feature-icon bg-info text-white rounded-circle mx-auto mb-3">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <h5 class="card-title">Discord Commands</h5>
+                        <p class="card-text">Learn about all available Discord bot commands and their usage examples.</p>
+                        <a href="commands.html" class="btn btn-info">View Commands</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information and Quick Start -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> How to Use</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-users text-primary"></i> Clan Search</h6>
+                                <p class="small">Enter a clan tag (with or without #) to view comprehensive clan information including member details, war statistics, and clan settings.</p>
+                                
+                                <h6><i class="fas fa-user text-success"></i> Player Search</h6>
+                                <p class="small">Enter a player tag to see detailed player statistics, achievements, troop levels, and current clan information.</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-sword text-warning"></i> War Data</h6>
+                                <p class="small">Clan searches automatically include current war information and CWL group data when available.</p>
+                                
+                                <h6><i class="fas fa-terminal text-info"></i> Discord Bot</h6>
+                                <p class="small">All features available on this website can also be accessed through Discord commands in your server.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-rocket"></i> Quick Start</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="clan.html?tag=2Y9L0RYR0" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-users"></i> Example Clan
+                            </a>
+                            <a href="player.html?tag=2PP" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-user"></i> Example Player
+                            </a>
+                            <a href="commands.html" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-list"></i> All Commands
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-robot"></i> Discord Bot Features</h5>
+                    <p>Comprehensive Clash of Clans data tracking and management</p>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-globe"></i> Web Portal</h5>
+                    <p>Access all bot features through this web interface</p>
+                </div>
+            </div>
+            <hr class="my-3">
+            <p>&copy; 2024 COC Discord Bot. Built with HTML, CSS & JavaScript.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
