@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <h6><i class="fas fa-external-link-alt"></i> Web Alternative</h6>
                                         ${command.webAlternative ? getWebAlternative(command.category) : 
-                                            '<span class="text-muted small">Discord only</span>'}
+                                            '<span class="text-muted small">Not available</span>'}
                                     </div>
                                 </div>
                             </div>

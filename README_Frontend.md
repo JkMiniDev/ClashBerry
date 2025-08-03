@@ -1,7 +1,7 @@
-# Clash of Clans Discord Bot Web Portal
+# ClashBerry - Clash of Clans Stats Portal
 ## Frontend-Only Website
 
-A modern, responsive web application that showcases Discord bot commands and provides a web interface for searching Clash of Clans clan and player data. Built with pure HTML, CSS, and JavaScript - **no backend required**.
+A modern, responsive web application that provides comprehensive Clash of Clans statistics and analysis. Search for clan and player data with detailed analytics. Built with pure HTML, CSS, and JavaScript - **no backend required**.
 
 ## 🌟 Features
 
@@ -70,7 +70,7 @@ const API_CONFIG = {
 ├── index.html              # Homepage with features overview
 ├── clan.html               # Clan search and display page
 ├── player.html             # Player search and display page
-├── commands.html           # Discord commands showcase
+├── commands.html           # ClashBerry features showcase
 ├── css/
 │   └── style.css          # Custom styles and animations
 └── js/
@@ -124,7 +124,7 @@ The website includes comprehensive error handling for:
 - Clan membership with quick clan access
 
 ### Commands Showcase (`commands.html`)
-- Interactive documentation of Discord bot commands
+- Interactive showcase of ClashBerry features and capabilities
 - Usage examples and feature descriptions
 - Web alternatives for applicable commands
 - Command categorization with icons

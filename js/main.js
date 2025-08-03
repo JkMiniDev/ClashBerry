@@ -1,4 +1,4 @@
-// Main JavaScript for COC Bot Portal
+// Main JavaScript for ClashBerry
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
