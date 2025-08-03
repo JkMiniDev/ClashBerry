@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Player Search - COC Bot Portal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user"></i> Player Search</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('player_search') }}">
+                    <div class="input-group">
+                        <span class="input-group-text">#</span>
+                        <input type="text" class="form-control" name="tag" 
+                               placeholder="Enter player tag (e.g., 2PP)" 
+                               value="{{ search_tag }}" required>
+                        <button class="btn btn-success" type="submit">
+                            <i class="fas fa-search"></i> Search Player
+                        </button>
+                    </div>
+                    <div class="form-text">Enter the player tag with or without the # symbol</div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if player_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="mb-0">{{ player_data.name }}</h4>
+                        <small>{{ player_data.tag }}</small>
+                    </div>
+                    <div class="col-auto">
+                        {% if emoji_data.town_halls and player_data.townHallLevel|string in emoji_data.town_halls %}
+                            <span style="font-size: 2rem;">{{ emoji_data.town_halls[player_data.townHallLevel|string] }}</span>
+                        {% endif %}
+                        <span class="badge bg-light text-dark">TH {{ player_data.townHallLevel }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle text-success"></i> Player Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Experience Level:</strong></td>
+                                <td>{{ player_data.expLevel }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Trophies:</strong></td>
+                                <td>{{ "{:,}".format(player_data.trophies) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Best Trophies:</strong></td>
+                                <td>{{ "{:,}".format(player_data.bestTrophies) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>War Stars:</strong></td>
+                                <td>{{ player_data.warStars }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Attack Wins:</strong></td>
+                                <td>{{ player_data.attackWins }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Defense Wins:</strong></td>
+                                <td>{{ player_data.defenseWins }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-trophy text-warning"></i> Additional Stats</h6>
+                        <table class="table table-sm">
+                            {% if player_data.builderHallLevel %}
+                            <tr>
+                                <td><strong>Builder Hall Level:</strong></td>
+                                <td>{{ player_data.builderHallLevel }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if player_data.versusTrophies %}
+                            <tr>
+                                <td><strong>Versus Trophies:</strong></td>
+                                <td>{{ "{:,}".format(player_data.versusTrophies) }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if player_data.bestVersusTrophies %}
+                            <tr>
+                                <td><strong>Best Versus Trophies:</strong></td>
+                                <td>{{ "{:,}".format(player_data.bestVersusTrophies) }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td><strong>Donations:</strong></td>
+                                <td>{{ "{:,}".format(player_data.donations) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Donations Received:</strong></td>
+                                <td>{{ "{:,}".format(player_data.donationsReceived) }}</td>
+                            </tr>
+                            {% if player_data.clanCapitalContributions %}
+                            <tr>
+                                <td><strong>Capital Contributions:</strong></td>
+                                <td>{{ "{:,}".format(player_data.clanCapitalContributions) }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clan Information -->
+{% if player_data.clan %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Clan Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6>{{ player_data.clan.name }}</h6>
+                        <p class="mb-1"><strong>Tag:</strong> {{ player_data.clan.tag }}</p>
+                        <p class="mb-1"><strong>Role:</strong> <span class="badge bg-secondary">{{ player_data.role if player_data.role else 'Member' }}</span></p>
+                        <p class="mb-0"><strong>Clan Level:</strong> {{ player_data.clan.clanLevel }}</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a href="{{ url_for('clan_search') }}?tag={{ player_data.clan.tag.replace('#', '') }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-users"></i> View Clan
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- League Information -->
+{% if player_data.league %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-medal"></i> League Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6>{{ player_data.league.name }}</h6>
+                        {% if player_data.league.iconUrls and player_data.league.iconUrls.small %}
+                        <img src="{{ player_data.league.iconUrls.small }}" alt="League Icon" style="width: 32px; height: 32px;">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Achievements -->
+{% if player_data.achievements %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-trophy"></i> Achievements ({{ player_data.achievements|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for achievement in player_data.achievements[:12] %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body p-3">
+                                <h6 class="card-title">{{ achievement.name }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">{{ achievement.info }}</small>
+                                        <div class="progress" style="height: 6px;">
+                                            {% set progress = (achievement.value / achievement.target * 100) if achievement.target > 0 else 0 %}
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ progress }}%"></div>
+                                        </div>
+                                        <small>{{ achievement.value }}/{{ achievement.target }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">{{ achievement.stars }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if player_data.achievements|length > 12 %}
+                <div class="text-center">
+                    <button class="btn btn-outline-primary" id="showMoreAchievements">
+                        Show More Achievements
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Troops -->
+{% if player_data.troops %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-fist-raised"></i> Troops</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for troop in player_data.troops %}
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card text-center">
+                            <div class="card-body p-2">
+                                <h6 class="card-title">{{ troop.name }}</h6>
+                                <p class="mb-1">Level {{ troop.level }}</p>
+                                {% if troop.maxLevel %}
+                                <small class="text-muted">Max: {{ troop.maxLevel }}</small>
+                                {% endif %}
+                                <div class="progress mt-1" style="height: 4px;">
+                                    {% set progress = (troop.level / troop.maxLevel * 100) if troop.maxLevel > 0 else 0 %}
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ progress }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Spells -->
+{% if player_data.spells %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-magic"></i> Spells</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for spell in player_data.spells %}
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card text-center">
+                            <div class="card-body p-2">
+                                <h6 class="card-title">{{ spell.name }}</h6>
+                                <p class="mb-1">Level {{ spell.level }}</p>
+                                {% if spell.maxLevel %}
+                                <small class="text-muted">Max: {{ spell.maxLevel }}</small>
+                                {% endif %}
+                                <div class="progress mt-1" style="height: 4px;">
+                                    {% set progress = (spell.level / spell.maxLevel * 100) if spell.maxLevel > 0 else 0 %}
+                                    <div class="progress-bar bg-info" role="progressbar" 
+                                         style="width: {{ progress }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Heroes -->
+{% if player_data.heroes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-crown"></i> Heroes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for hero in player_data.heroes %}
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body p-2">
+                                <h6 class="card-title text-warning">{{ hero.name }}</h6>
+                                <p class="mb-1">Level {{ hero.level }}</p>
+                                {% if hero.maxLevel %}
+                                <small class="text-muted">Max: {{ hero.maxLevel }}</small>
+                                {% endif %}
+                                <div class="progress mt-1" style="height: 4px;">
+                                    {% set progress = (hero.level / hero.maxLevel * 100) if hero.maxLevel > 0 else 0 %}
+                                    <div class="progress-bar bg-warning" role="progressbar" 
+                                         style="width: {{ progress }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% elif search_tag %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> 
+            Player not found. Please check the player tag and try again.
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const input = document.querySelector('input[name="tag"]');
+    let value = input.value.trim();
+    if (value && !value.startsWith('#')) {
+        value = value.replace(/^#+/, ''); // Remove any leading # characters
+    }
+    input.value = value;
+});
+
+// Show more achievements functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const showMoreBtn = document.getElementById('showMoreAchievements');
+    if (showMoreBtn) {
+        showMoreBtn.addEventListener('click', function() {
+            // This would require AJAX to load more achievements
+            // For now, just hide the button
+            this.style.display = 'none';
+        });
+    }
+});
+</script>
+{% endblock %}
