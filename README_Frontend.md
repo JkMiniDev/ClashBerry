@@ -85,10 +85,10 @@ const API_CONFIG = {
 - **Base URL**: `https://api.jktripuri.site`
 - **Token**: `JkMiniDev%1998`
 - **Endpoints Used**:
-  - `/v1/clans/{clanTag}` - Clan information
-  - `/v1/players/{playerTag}` - Player information
-  - `/v1/clans/{clanTag}/currentwar` - Current war data
-  - `/v1/clans/{clanTag}/currentwar/leaguegroup` - CWL data
+  - `/clans/{clanTag}` - Clan information
+  - `/players/{playerTag}` - Player information
+  - `/clans/{clanTag}/currentwar` - Current war data
+  - `/clans/{clanTag}/currentwar/leaguegroup` - CWL data
 
 ### Error Handling
 The website includes comprehensive error handling for:

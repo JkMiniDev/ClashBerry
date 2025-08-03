@@ -53,37 +53,37 @@ class COCAPI {
     // Get clan information
     async getClan(clanTag) {
         const formattedTag = this.formatClanTag(clanTag);
-        return await this.makeRequest(`/v1/clans/${formattedTag}`);
+        return await this.makeRequest(`/clans/${formattedTag}`);
     }
 
     // Get player information
     async getPlayer(playerTag) {
         const formattedTag = this.formatPlayerTag(playerTag);
-        return await this.makeRequest(`/v1/players/${formattedTag}`);
+        return await this.makeRequest(`/players/${formattedTag}`);
     }
 
     // Get current clan war
     async getClanWar(clanTag) {
         const formattedTag = this.formatClanTag(clanTag);
-        return await this.makeRequest(`/v1/clans/${formattedTag}/currentwar`);
+        return await this.makeRequest(`/clans/${formattedTag}/currentwar`);
     }
 
     // Get CWL group information
     async getCWLGroup(clanTag) {
         const formattedTag = this.formatClanTag(clanTag);
-        return await this.makeRequest(`/v1/clans/${formattedTag}/currentwar/leaguegroup`);
+        return await this.makeRequest(`/clans/${formattedTag}/currentwar/leaguegroup`);
     }
 
     // Get clan war log
     async getClanWarLog(clanTag) {
         const formattedTag = this.formatClanTag(clanTag);
-        return await this.makeRequest(`/v1/clans/${formattedTag}/warlog`);
+        return await this.makeRequest(`/clans/${formattedTag}/warlog`);
     }
 
     // Get clan members
     async getClanMembers(clanTag) {
         const formattedTag = this.formatClanTag(clanTag);
-        return await this.makeRequest(`/v1/clans/${formattedTag}/members`);
+        return await this.makeRequest(`/clans/${formattedTag}/members`);
     }
 }
 
