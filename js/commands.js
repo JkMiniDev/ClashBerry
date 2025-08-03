@@ -1,94 +1,94 @@
-// Discord Commands Data and Display
+// ClashBerry Features Data and Display
 document.addEventListener('DOMContentLoaded', function() {
     const commandsList = document.getElementById('commandsList');
     
-    // Discord commands data
-    const discordCommands = [
+    // ClashBerry features data
+    const clashberryFeatures = [
         {
-            name: '!clan',
+            name: 'Clan Analytics',
             description: 'Display comprehensive clan information including member list, war stats, and clan details',
-            usage: '!clan <clan_tag>',
+            usage: 'Enter clan tag in search',
             features: ['Clan overview', 'Member list with TH levels', 'War statistics', 'Clan type and requirements'],
             category: 'clan',
-            example: '!clan #2Y9L0RYR0',
+            example: 'Search: #2Y9L0RYR0',
             webAlternative: true
         },
         {
-            name: '!player',
+            name: 'Player Statistics',
             description: 'Show detailed player statistics, achievements, and troop information',
-            usage: '!player <player_tag>',
+            usage: 'Enter player tag in search',
             features: ['Player stats', 'Achievement progress', 'Troop levels', 'Clan information'],
             category: 'player',
-            example: '!player #2PP',
+            example: 'Search: #2PP',
             webAlternative: true
         },
         {
-            name: '!war',
+            name: 'War Tracking',
             description: 'Display current clan war information with attack details and member performance',
-            usage: '!war <clan_tag>',
+            usage: 'Available in clan search results',
             features: ['War overview', 'Attack progress', 'Member performance', 'Star and destruction percentages'],
             category: 'war',
-            example: '!war #2Y9L0RYR0',
+            example: 'Included with clan data',
             webAlternative: true
         },
         {
-            name: '!linkaccount',
-            description: 'Link your Discord account to your Clash of Clans player tag',
-            usage: '!linkaccount <player_tag>',
-            features: ['Account verification', 'Discord-COC linking', 'Profile management'],
-            category: 'account',
-            example: '!linkaccount #2PP',
-            webAlternative: false
+            name: 'Real-time Data',
+            description: 'Access up-to-date Clash of Clans data directly from official API',
+            usage: 'Automatic with all searches',
+            features: ['Live statistics', 'Current trophies', 'Latest war status', 'Real-time clan info'],
+            category: 'data',
+            example: 'Always current data',
+            webAlternative: true
         },
         {
-            name: '!addclan',
-            description: 'Add a clan to the server\'s tracking system',
-            usage: '!addclan <clan_tag>',
-            features: ['Clan registration', 'Server clan list', 'Clan monitoring'],
-            category: 'management',
-            example: '!addclan #2Y9L0RYR0',
-            webAlternative: false
-        },
-        {
-            name: '!removeclan',
-            description: 'Remove a clan from the server\'s tracking system',
-            usage: '!removeclan <clan_tag>',
-            features: ['Clan deregistration', 'Clean up clan list', 'Stop monitoring'],
-            category: 'management',
-            example: '!removeclan #2Y9L0RYR0',
-            webAlternative: false
-        },
-        {
-            name: '!accounts',
-            description: 'View all linked accounts for a Discord user',
-            usage: '!accounts [@user]',
-            features: ['Account overview', 'Verification status', 'Multiple account support'],
-            category: 'account',
-            example: '!accounts @username',
-            webAlternative: false
-        },
-        {
-            name: '!unlinkaccount',
-            description: 'Unlink a Discord account from a Clash of Clans player tag',
-            usage: '!unlinkaccount <player_tag>',
-            features: ['Account unlinking', 'Profile cleanup', 'Privacy management'],
-            category: 'account',
-            example: '!unlinkaccount #2PP',
-            webAlternative: false
-        },
-        {
-            name: '!help',
-            description: 'Display help information and available commands',
-            usage: '!help [command]',
-            features: ['Command list', 'Usage instructions', 'Feature descriptions'],
+            name: 'Search History',
+            description: 'Keep track of recently searched clans and players for quick access',
+            usage: 'Automatic local storage',
+            features: ['Recent searches', 'Quick access', 'Local storage', 'Search suggestions'],
             category: 'utility',
-            example: '!help clan',
-            webAlternative: false
+            example: 'Previous searches saved',
+            webAlternative: true
+        },
+        {
+            name: 'Responsive Design',
+            description: 'Access ClashBerry on any device with full functionality',
+            usage: 'Works on all devices',
+            features: ['Mobile friendly', 'Tablet optimized', 'Desktop experience', 'Touch friendly'],
+            category: 'design',
+            example: 'Any device compatibility',
+            webAlternative: true
+        },
+        {
+            name: 'Advanced Analytics',
+            description: 'Deep dive into clan and player statistics with detailed analysis',
+            usage: 'Available in search results',
+            features: ['Detailed breakdowns', 'Progress tracking', 'Performance metrics', 'Trend analysis'],
+            category: 'analytics',
+            example: 'Comprehensive stat views',
+            webAlternative: true
+        },
+        {
+            name: 'Fast Performance',
+            description: 'Optimized loading and responsive interface for quick data access',
+            usage: 'Built-in optimization',
+            features: ['Quick loading', 'Efficient API calls', 'Cached assets', 'Smooth animations'],
+            category: 'performance',
+            example: 'Sub-second load times',
+            webAlternative: true
+        },
+        {
+            name: 'User Friendly',
+            description: 'Intuitive interface designed for easy navigation and data discovery',
+            usage: 'Easy to use interface',
+            features: ['Clean design', 'Clear navigation', 'Helpful tooltips', 'Error guidance'],
+            category: 'usability',
+            example: 'Simple and effective',
+            webAlternative: true
         }
     ];
     
-    // Render commands
-    displayCommands(discordCommands);
+    // Render features
+    displayCommands(clashberryFeatures);
     
     function displayCommands(commands) {
         const commandsHtml = commands.map(command => {
@@ -150,11 +150,14 @@ document.addEventListener('DOMContentLoaded', function() {
             'clan': 'fas fa-users',
             'player': 'fas fa-user',
             'war': 'fas fa-sword',
-            'account': 'fas fa-id-card',
-            'management': 'fas fa-cogs',
-            'utility': 'fas fa-question-circle'
+            'data': 'fas fa-database',
+            'utility': 'fas fa-tools',
+            'design': 'fas fa-mobile-alt',
+            'analytics': 'fas fa-chart-line',
+            'performance': 'fas fa-rocket',
+            'usability': 'fas fa-heart'
         };
-        return icons[category] || 'fas fa-terminal';
+        return icons[category] || 'fas fa-star';
     }
     
     function getCategoryColor(category) {
@@ -162,9 +165,12 @@ document.addEventListener('DOMContentLoaded', function() {
             'clan': 'text-primary',
             'player': 'text-success',
             'war': 'text-warning',
-            'account': 'text-info',
-            'management': 'text-secondary',
-            'utility': 'text-dark'
+            'data': 'text-info',
+            'utility': 'text-secondary',
+            'design': 'text-purple',
+            'analytics': 'text-dark',
+            'performance': 'text-danger',
+            'usability': 'text-pink'
         };
         return colors[category] || 'text-dark';
     }
@@ -174,29 +180,62 @@ document.addEventListener('DOMContentLoaded', function() {
             'clan': 'Shows comprehensive clan information including members and war status',
             'player': 'Displays detailed player statistics and progression',
             'war': 'Shows current war status and attack progress',
-            'account': 'Links or manages Discord account connections',
-            'management': 'Manages server clan settings and tracking',
-            'utility': 'Provides help and utility functions'
+            'data': 'Provides real-time data from Clash of Clans API',
+            'utility': 'Enhances user experience with helpful features',
+            'design': 'Optimized for all devices and screen sizes',
+            'analytics': 'Deep analysis of statistics and trends',
+            'performance': 'Fast and efficient data processing',
+            'usability': 'Designed for ease of use and accessibility'
         };
-        return descriptions[category] || 'Executes the specified command';
+        return descriptions[category] || 'Available throughout the ClashBerry platform';
     }
     
     function getWebAlternative(category) {
         const alternatives = {
             'clan': `
                 <a href="clan.html" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-users"></i> Use Clan Search
+                    <i class="fas fa-users"></i> Try Clan Search
                 </a>
             `,
             'player': `
                 <a href="player.html" class="btn btn-sm btn-outline-success">
-                    <i class="fas fa-user"></i> Use Player Search
+                    <i class="fas fa-user"></i> Try Player Search
                 </a>
             `,
             'war': `
                 <a href="clan.html" class="btn btn-sm btn-outline-warning">
                     <i class="fas fa-sword"></i> View War Data
                 </a>
+            `,
+            'data': `
+                <span class="badge bg-info">
+                    <i class="fas fa-check"></i> Built-in Feature
+                </span>
+            `,
+            'utility': `
+                <span class="badge bg-secondary">
+                    <i class="fas fa-check"></i> Available Now
+                </span>
+            `,
+            'design': `
+                <span class="badge bg-purple">
+                    <i class="fas fa-check"></i> Responsive Design
+                </span>
+            `,
+            'analytics': `
+                <span class="badge bg-dark">
+                    <i class="fas fa-check"></i> Advanced Stats
+                </span>
+            `,
+            'performance': `
+                <span class="badge bg-danger">
+                    <i class="fas fa-check"></i> Optimized
+                </span>
+            `,
+            'usability': `
+                <span class="badge bg-pink">
+                    <i class="fas fa-check"></i> User Friendly
+                </span>
             `
         };
         return alternatives[category] || '<span class="text-muted small">Not available</span>';
