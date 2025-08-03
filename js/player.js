@@ -31,13 +31,32 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading
             loadingUtils.showLoading('#resultsContainer');
 
+            // Debug log
+            console.log('Searching for player:', playerTag);
+
             // Fetch player data
             const playerData = await cocAPI.getPlayer(playerTag);
+            console.log('Player data received:', playerData);
             displayPlayerData(playerData);
 
         } catch (error) {
             loadingUtils.hideLoading();
-            errorHandler.handleAPIError(error);
+            console.error('Search error:', error);
+            
+            // Show detailed error message
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Error fetching player data</h5>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Please check:</strong><br>
+                        1. You entered a valid player tag (e.g. #ABC123)<br>
+                        2. The player exists and is not private<br>
+                        3. Try again in a moment
+                    </p>
+                </div>
+            `;
         } finally {
             // Reset button state
             searchBtn.disabled = false;

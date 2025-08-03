@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .result { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Player API</h3>
+        <input type="text" id="playerTag" placeholder="Enter player tag (e.g., 2PP)" value="2PP">
+        <button onclick="testPlayer()">Test Player API</button>
+        <div id="playerResult" class="result">Click button to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Clan API</h3>
+        <input type="text" id="clanTag" placeholder="Enter clan tag (e.g., 2Y9L0RYR0)" value="2Y9L0RYR0">
+        <button onclick="testClan()">Test Clan API</button>
+        <div id="clanResult" class="result">Click button to test...</div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        async function testPlayer() {
+            const tag = document.getElementById('playerTag').value;
+            const resultDiv = document.getElementById('playerResult');
+            
+            resultDiv.innerHTML = 'Testing...';
+            resultDiv.className = 'result';
+            
+            try {
+                console.log('Testing player tag:', tag);
+                const data = await cocAPI.getPlayer(tag);
+                console.log('Player API response:', data);
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>SUCCESS!</strong><br>
+                    Player: ${data.name}<br>
+                    Tag: ${data.tag}<br>
+                    TH Level: ${data.townHallLevel}<br>
+                    Trophies: ${data.trophies}
+                `;
+            } catch (error) {
+                console.error('Player API error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>ERROR:</strong><br>
+                    ${error.message}
+                `;
+            }
+        }
+
+        async function testClan() {
+            const tag = document.getElementById('clanTag').value;
+            const resultDiv = document.getElementById('clanResult');
+            
+            resultDiv.innerHTML = 'Testing...';
+            resultDiv.className = 'result';
+            
+            try {
+                console.log('Testing clan tag:', tag);
+                const data = await cocAPI.getClan(tag);
+                console.log('Clan API response:', data);
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>SUCCESS!</strong><br>
+                    Clan: ${data.name}<br>
+                    Tag: ${data.tag}<br>
+                    Level: ${data.clanLevel}<br>
+                    Members: ${data.members}/50
+                `;
+            } catch (error) {
+                console.error('Clan API error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>ERROR:</strong><br>
+                    ${error.message}
+                `;
+            }
+        }
+
+        // Test on page load
+        console.log('API Config:', {
+            baseURL: cocAPI.baseURL,
+            token: cocAPI.token
+        });
+    </script>
+</body>
+</html>

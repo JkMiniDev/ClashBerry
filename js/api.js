@@ -15,16 +15,17 @@ class COCAPI {
     async makeRequest(endpoint) {
         try {
             const url = `${this.baseURL}${endpoint}`;
+            console.log('Making API request to:', url); // Debug log
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${this.token}`
                 }
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`Server responded with ${response.status}: ${errorText}`);
             }
 
             return await response.json();
@@ -37,17 +38,17 @@ class COCAPI {
     // Format clan tag for API
     formatClanTag(tag) {
         if (!tag) return '';
-        // Remove # if present and encode for URL
+        // Remove # if present and replace with %23
         const cleanTag = tag.replace(/^#+/, '');
-        return encodeURIComponent(`#${cleanTag}`);
+        return `%23${cleanTag}`;
     }
 
     // Format player tag for API
     formatPlayerTag(tag) {
         if (!tag) return '';
-        // Remove # if present and encode for URL
+        // Remove # if present and replace with %23
         const cleanTag = tag.replace(/^#+/, '');
-        return encodeURIComponent(`#${cleanTag}`);
+        return `%23${cleanTag}`;
     }
 
     // Get clan information

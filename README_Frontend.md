@@ -62,6 +62,8 @@ const API_CONFIG = {
 };
 ```
 
+**Important:** The API calls now correctly format tags by replacing `#` with `%23` and use `Bearer` authentication, matching your working implementation.
+
 ## 📁 Project Structure
 
 ```

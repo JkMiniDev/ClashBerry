@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading
             loadingUtils.showLoading('#resultsContainer');
 
+            // Debug log
+            console.log('Searching for clan:', clanTag);
+
             // Fetch clan data
             const [clanData, warData, cwlData] = await Promise.allSettled([
                 cocAPI.getClan(clanTag),
@@ -40,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Handle clan data result
             if (clanData.status === 'fulfilled') {
+                console.log('Clan data received:', clanData.value);
                 displayClanData(clanData.value, 
                     warData.status === 'fulfilled' ? warData.value : null,
                     cwlData.status === 'fulfilled' ? cwlData.value : null);
@@ -49,7 +53,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             loadingUtils.hideLoading();
-            errorHandler.handleAPIError(error);
+            console.error('Search error:', error);
+            
+            // Show detailed error message
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Error fetching clan data</h5>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Please check:</strong><br>
+                        1. You entered a valid clan tag (e.g. #ABC123)<br>
+                        2. The clan exists<br>
+                        3. Try again in a moment
+                    </p>
+                </div>
+            `;
         } finally {
             // Reset button state
             searchBtn.disabled = false;
